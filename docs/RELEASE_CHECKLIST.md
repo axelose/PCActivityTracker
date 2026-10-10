@@ -1,0 +1,37 @@
+# Public release checklist
+
+- [ ] `scripts\verify-public-source.cmd -RequireGit`が成功し、DB、鍵、ログ、診断ZIP、ビルド成果物、ユーザー絶対パスがGit追跡対象にない
+- [ ] `scripts/test-public-source.ps1`が成功し、コミット直前のステージ済みblobを検査。index 0件の結果をコミット内容の検証と扱わない
+- [ ] GitHub Actionsの全外部Actionが完全なcommit SHAへ固定され、CodeQL、Dependency review、NuGet監査が成功
+- [ ] `dotnet restore PCActivityTracker.sln --locked-mode`が成功し、意図した依存更新だけがlock fileへ反映
+- [ ] デスクトップ版と拡張版それぞれのバージョンを確認し、拡張manifestと`ExpectedExtensionVersion`が一致（デスクトップとの同一番号は不要）
+- [ ] デスクトップZIPに`DOTNET-LICENSE.txt`と`DOTNET-THIRD-PARTY-NOTICES.txt`が入っている
+- [ ] `scripts/self-test.cmd`が成功
+- [ ] `scripts/test-native-compatibility.ps1`が成功し、旧暗号化DB・WAL・相互読込・誤鍵・破損拒否を確認
+- [ ] 両CPUの独自SQLCipher DLLを構築し、配布検査でネイティブ版情報・PEアーキテクチャ・ライセンス・NATIVE-SBOMを確認。旧e_sqlcipher.dllが混入していない
+- [ ] 自己診断に表示されるSQLite／SQLCipherの実バージョンを確認し、NuGet監査とは別にネイティブエンジンの更新・脆弱性を確認
+- [ ] .NET未導入のWindows 11 x64／Arm64クリーン環境で起動
+- [ ] 前バージョンDBから移行し、移行前バックアップが作成される
+- [ ] 完全削除後、DB・WAL・SHM・バックアップ・診断ログにテスト文字列が残らない
+- [ ] 既存平文DBがSQLCipherへ移行し、DB/WAL/バックアップがSQLite平文ヘッダーやテスト文字列を露出しない
+- [ ] `database.key`紛失時の復旧不能性と、同一Windowsユーザーでのバックアップ復元を確認
+- [ ] ZIP版の手動削除ではデータが残り、MSIXアンインストールではLocalStateが削除されることを実機確認
+- [ ] ZIP版のHKCU自動起動とMSIX版Startup Taskを有効／無効にし、サインイン後の通知領域起動を実機確認
+- [ ] Windows DefenderとSmartScreenで配布物を確認
+- [ ] 公開証明書で自作EXE／DLL（MSIX配布時はMSIXも）を署名し、タイムスタンプと署名を検証
+- [ ] `verify-release.cmd`が`-AllowUnsigned`なしで成功し、ZIP内容とSBOMハッシュが一致。開発版マーカーがない
+- [ ] `test-release-verifier.ps1`で未署名公開、改変／欠落／重複ZIP、パストラバーサルの拒否を確認
+- [ ] `test-release-safety.ps1`で起動中／ロック中の拒否、途中失敗のロールバック、旧成果物保存を確認
+- [ ] HTTPSのApp Installer URLで更新・ロールバックを確認
+- [ ] Chrome Web Store／Edge Add-onsの権限理由・データ利用・プライバシーURLを登録
+- [ ] `browser-extension/STORE_LISTING.md`のプレースホルダーを正式なHTTPSプライバシーURLとサポートURLへ置換
+- [ ] 拡張ポップアップの停止・再開・ペアリング・トークン再発行を確認
+- [ ] Chrome/EdgeのNative Messaging登録・ブラウザ再起動・登録解除・ホスト更新後の再登録を確認
+- [ ] 匿名化診断ZIPにURL、タイトル、ドメイン、配信者、除外値、トークン、ユーザーパス、DB、生ログが含まれない
+- [ ] 72時間常駐、スリープ、Windowsロック、ブラウザ終了、ポート競合を確認
+- [ ] ゲーム前後のCPU、メモリ、フレーム時間を代表環境で比較
+- [ ] 外部通信監視でActivityデータが送信されず、ブラウザ連携がNative Messaging／Named Pipeだけを使うことを確認
+- [ ] GitHub Private Vulnerability Reporting、Dependabot alerts／security updates、Secret scanning／Push protectionを有効化
+- [ ] `SECURITY.md`の非公開報告ボタンを実リポジトリで確認し、Rulesetで必須CIとPull Request reviewを設定
+- [ ] 署名済みReleaseへSHA-256、SBOM、provenanceを添付し、タグ／Releaseを変更不可にする
+- [ ] MSIXを公開する場合、Native Messaging登録未対応を解消してChrome／Edge／Braveサイト連携を実機確認

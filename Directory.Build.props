@@ -1,0 +1,24 @@
+<Project>
+  <PropertyGroup>
+    <Version>3.2.5</Version>
+    <AssemblyVersion>3.2.5.0</AssemblyVersion>
+    <FileVersion>3.2.5.0</FileVersion>
+    <InformationalVersion>3.2.5</InformationalVersion>
+    <Company>PC Activity Tracker Project</Company>
+    <Product>PC Activity Tracker</Product>
+    <Description>Privacy-first local activity history for Windows 11.</Description>
+    <Copyright>Copyright © 2026 PC Activity Tracker Project</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <!-- Keep the restore graph identical for normal builds and either Windows publish. -->
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>

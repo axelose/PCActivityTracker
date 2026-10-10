@@ -1,0 +1,36 @@
+name: Feature request
+description: ローカル専用・プライバシー境界を保つ改善案
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        実在するURL、タイトル、Activity履歴、トークン、鍵、ユーザーパスは記載しないでください。
+  - type: textarea
+    id: problem
+    attributes:
+      label: 解決したい課題
+      description: 機能そのものではなく、困っている状況を説明してください。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案する動作
+    validations:
+      required: true
+  - type: dropdown
+    id: data-impact
+    attributes:
+      label: 新しいデータ収集・外部通信
+      options:
+        - 追加しない
+        - ローカル保存項目を追加する
+        - 外部通信または外部サービスが必要
+    validations:
+      required: true
+  - type: textarea
+    id: privacy
+    attributes:
+      label: プライバシー上の配慮
+      description: 記録ON/OFF、除外、保持、完全削除の考え方を記載してください。

@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-self-test:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - name: Verify public source tree
+        shell: cmd
+        run: scripts\verify-public-source.cmd -RequireGit
+      - name: Test staged source inspection
+        shell: pwsh
+        run: .\scripts\test-public-source.ps1
+      - name: Validate extension JavaScript
+        shell: pwsh
+        run: |
+          Get-ChildItem browser-extension -Filter *.js | ForEach-Object {
+            node --check $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax check failed: $($_.Name)" }
+          }
+      - name: Restore locked dependencies
+        shell: pwsh
+        run: dotnet restore PCActivityTracker.sln --locked-mode
+      - name: Build and run local-only self-test
+        shell: cmd
+        run: scripts\self-test.cmd
+      - name: Verify native database compatibility
+        shell: pwsh
+        run: .\scripts\test-native-compatibility.ps1
+      - name: Audit managed NuGet dependencies
+        shell: pwsh
+        run: dotnet list PCActivityTracker.sln package --vulnerable --include-transitive
+      - name: Validate x64 and Arm64 packages and SBOMs
+        shell: pwsh
+        run: |
+          foreach ($runtime in @('win-x64','win-arm64')) {
+            .\scripts\publish.ps1 -Runtime $runtime -AllowUnsigned
+          }
+      - name: Verify safe release replacement
+        shell: pwsh
+        run: .\scripts\test-release-safety.ps1
+      - name: Test release verifier rejection cases
+        shell: pwsh
+        run: |
+          [xml]$props = Get-Content Directory.Build.props
+          $version = $props.Project.PropertyGroup.Version
+          $drop = "artifacts/release/PCActivityTracker-$version-win-x64"
+          .\scripts\test-release-verifier.ps1 -PublishDirectory $drop -ArchivePath "$drop.zip"
+
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          fail-on-severity: low

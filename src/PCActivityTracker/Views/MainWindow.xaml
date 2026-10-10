@@ -1,0 +1,1249 @@
+<Window x:Class="PCActivityTracker.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PC Activity Tracker" Width="1240" Height="820" MinWidth="980" MinHeight="680"
+        Background="{DynamicResource Canvas}" WindowStartupLocation="CenterScreen"
+        Closing="Window_Closing">
+    <Window.Resources>
+        <Style x:Key="PeriodDateButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ToolTip" Value="日付を選択" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="DateButtonBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DateButtonBorder" Property="Background" Value="{DynamicResource AccentSoft}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="DateButtonBorder" Property="Background" Value="{DynamicResource AccentSoft}" />
+                                <Setter TargetName="DateButtonBorder" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="DateButtonBorder" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PeriodNavigationButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="NavigationBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="NavigationBorder" Property="Background" Value="{DynamicResource AccentSoft}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="NavigationBorder" Property="Background" Value="{DynamicResource Accent}" />
+                                <Setter Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="NavigationBorder" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PeriodTodayButtonStyle" TargetType="Button" BasedOn="{StaticResource PeriodNavigationButtonStyle}">
+            <Setter Property="Width" Value="54" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+
+        <Style x:Key="PeriodRefreshButtonStyle" TargetType="Button">
+            <Setter Property="MinWidth" Value="64" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="Background" Value="{DynamicResource Accent}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="RefreshBorder" Background="{TemplateBinding Background}" CornerRadius="9"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.88" /></Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter Property="Opacity" Value="0.72" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="RefreshBorder" Property="BorderBrush" Value="White" />
+                                <Setter TargetName="RefreshBorder" Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DrilldownLinkButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.72" /></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="0.72" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernCalendarDayStyle" TargetType="CalendarDayButton">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Margin" Value="1" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CalendarDayButton">
+                        <Border x:Name="DayBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7" SnapsToDevicePixels="True">
+                            <TextBlock x:Name="DayText" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="DayBorder" Property="Background" Value="{DynamicResource AccentSoft}" />
+                            </Trigger>
+                            <Trigger Property="IsToday" Value="True">
+                                <Setter TargetName="DayBorder" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                                <Setter TargetName="DayText" Property="FontWeight" Value="Bold" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="DayBorder" Property="Background" Value="{DynamicResource Accent}" />
+                                <Setter TargetName="DayBorder" Property="BorderBrush" Value="{DynamicResource Accent}" />
+                                <Setter TargetName="DayText" Property="Foreground" Value="White" />
+                                <Setter TargetName="DayText" Property="FontWeight" Value="SemiBold" />
+                            </Trigger>
+                            <Trigger Property="IsInactive" Value="True">
+                                <Setter Property="Opacity" Value="0.34" />
+                            </Trigger>
+                            <Trigger Property="IsBlackedOut" Value="True">
+                                <Setter Property="Opacity" Value="0.24" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.24" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernCalendarButtonStyle" TargetType="CalendarButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CalendarButton">
+                        <Border x:Name="MonthBorder" Background="{TemplateBinding Background}" CornerRadius="7" Padding="8">
+                            <TextBlock x:Name="MonthText" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MonthBorder" Property="Background" Value="{DynamicResource AccentSoft}" />
+                            </Trigger>
+                            <Trigger Property="HasSelectedDays" Value="True">
+                                <Setter TargetName="MonthBorder" Property="Background" Value="{DynamicResource Accent}" />
+                                <Setter TargetName="MonthText" Property="Foreground" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsInactive" Value="True"><Setter Property="Opacity" Value="0.4" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernCalendarItemStyle" TargetType="CalendarItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CalendarItem">
+                        <Grid x:Name="PART_Root" Background="{TemplateBinding Background}">
+                            <Grid.Resources>
+                                <Style x:Key="CalendarHeaderButtonStyle" TargetType="Button">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="FontSize" Value="14" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                    <Setter Property="Cursor" Value="Hand" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="HeaderBorder" Background="{TemplateBinding Background}"
+                                                        CornerRadius="7" Padding="8,6">
+                                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                      TextElement.Foreground="{TemplateBinding Foreground}" />
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="HeaderBorder" Property="Background" Value="{DynamicResource AccentSoft}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                                <Style x:Key="CalendarArrowButtonStyle" TargetType="Button" BasedOn="{StaticResource CalendarHeaderButtonStyle}">
+                                    <Setter Property="Width" Value="30" />
+                                    <Setter Property="Height" Value="30" />
+                                    <Setter Property="FontSize" Value="18" />
+                                    <Setter Property="Padding" Value="0" />
+                                </Style>
+                            </Grid.Resources>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0" Margin="2,0,2,5" KeyboardNavigation.TabIndex="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="PART_HeaderButton" Grid.Column="0" HorizontalAlignment="Left"
+                                            Style="{StaticResource CalendarHeaderButtonStyle}" />
+                                    <Button x:Name="PART_PreviousButton" Grid.Column="1" Content="‹" Margin="0,0,3,0"
+                                            AutomationProperties.Name="前の月" Style="{StaticResource CalendarArrowButtonStyle}" />
+                                    <Button x:Name="PART_NextButton" Grid.Column="2" Content="›"
+                                            AutomationProperties.Name="次の月" Style="{StaticResource CalendarArrowButtonStyle}" />
+                                </Grid>
+                                <Border Grid.Row="1" Height="1" Background="{DynamicResource Stroke}" Margin="5,0,5,7" />
+                                <Grid x:Name="PART_MonthView" Grid.Row="2" KeyboardNavigation.TabNavigation="Once"
+                                      KeyboardNavigation.TabIndex="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" />
+                                        <RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" />
+                                        <RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                </Grid>
+                                <Grid x:Name="PART_YearView" Grid.Row="2" Visibility="Collapsed"
+                                      KeyboardNavigation.TabNavigation="Once" KeyboardNavigation.TabIndex="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" /><RowDefinition Height="*" /><RowDefinition Height="*" />
+                                    </Grid.RowDefinitions>
+                                </Grid>
+                                <Border x:Name="PART_DisabledVisual" Grid.RowSpan="3" Background="{DynamicResource Panel}"
+                                        Opacity="0.55" Visibility="Collapsed" IsHitTestVisible="False" />
+                            </Grid>
+                        </Grid>
+                        <ControlTemplate.Resources>
+                            <DataTemplate x:Key="{x:Static CalendarItem.DayTitleTemplateResourceKey}">
+                                <TextBlock Text="{Binding}" Foreground="{DynamicResource MutedInk}" FontSize="11"
+                                           FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="1" Padding="5,6" />
+                            </DataTemplate>
+                        </ControlTemplate.Resources>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="PART_DisabledVisual" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding DisplayMode, RelativeSource={RelativeSource AncestorType=Calendar}}" Value="Year">
+                                <Setter TargetName="PART_MonthView" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="PART_YearView" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding DisplayMode, RelativeSource={RelativeSource AncestorType=Calendar}}" Value="Decade">
+                                <Setter TargetName="PART_MonthView" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="PART_YearView" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernCalendarStyle" TargetType="Calendar">
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CalendarDayButtonStyle" Value="{StaticResource ModernCalendarDayStyle}" />
+            <Setter Property="CalendarButtonStyle" Value="{StaticResource ModernCalendarButtonStyle}" />
+            <Setter Property="CalendarItemStyle" Value="{StaticResource ModernCalendarItemStyle}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Calendar">
+                        <Border x:Name="PART_Root" Background="{TemplateBinding Background}" CornerRadius="9">
+                            <CalendarItem x:Name="PART_CalendarItem" Background="Transparent" BorderThickness="0"
+                                          Style="{TemplateBinding CalendarItemStyle}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="{DynamicResource Sidebar}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel Margin="24,28,20,24">
+                    <TextBlock Text="PC ACTIVITY" Foreground="{DynamicResource SidebarText}" FontSize="18" FontWeight="Bold" />
+                    <TextBlock Text="LOCAL TRACKER" Foreground="{DynamicResource SidebarMuted}" FontSize="10" FontWeight="SemiBold" Margin="0,3,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Row="1">
+                    <Button Style="{DynamicResource SidebarButton}" Content="▦   ダッシュボード" Command="{Binding NavigateCommand}" CommandParameter="Dashboard" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="●   Today" Command="{Binding NavigateCommand}" CommandParameter="Today" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="◷   Day" Command="{Binding NavigateCommand}" CommandParameter="Day" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="▥   Week" Command="{Binding NavigateCommand}" CommandParameter="Week" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="▦   Month" Command="{Binding NavigateCommand}" CommandParameter="Month" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="◈   行動分析" Command="{Binding NavigateCommand}" CommandParameter="Analysis" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="⌕   分析エクスプローラー" Command="{Binding NavigateCommand}" CommandParameter="Explorer" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="✦   AI日報・週報" Command="{Binding NavigateCommand}" CommandParameter="AiReports" />
+                    <Separator Margin="22,14" Background="{DynamicResource Stroke}" />
+                    <Button Style="{DynamicResource SidebarButton}" Content="⚙   設定・プライバシー" Command="{Binding NavigateCommand}" CommandParameter="Settings" />
+                </StackPanel>
+                <Border Grid.Row="2" Margin="18,10,18,24" Padding="12" Background="{DynamicResource SidebarCard}" CornerRadius="8">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" Fill="{DynamicResource Success}" Margin="0,1,8,0" />
+                            <TextBlock Text="ローカル記録" Foreground="{DynamicResource SidebarText}" FontSize="12" FontWeight="SemiBold" />
+                        </StackPanel>
+                        <TextBlock Text="データはこのPC内だけに保存" Foreground="{DynamicResource SidebarMuted}" FontSize="10" Margin="16,5,0,0" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="86" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="28" />
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Stroke}" BorderThickness="0,0,0,1">
+                <Grid Margin="28,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding PageTitle}" FontSize="24" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding DateLabel}" Foreground="{DynamicResource MutedInk}" Margin="0,4,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                Visibility="{Binding ShowPeriodNavigation, Converter={StaticResource BoolToVisibility}}">
+                        <Border Background="{DynamicResource SubtlePanel}" BorderBrush="{DynamicResource Stroke}"
+                                BorderThickness="1" CornerRadius="11" Padding="3" Margin="0,0,12,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Grid>
+                                    <ToggleButton x:Name="PeriodDateButton" Style="{StaticResource PeriodDateButtonStyle}"
+                                                  MinWidth="174" Height="38" AutomationProperties.Name="日付を選択">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="20" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="16" />
+                                            </Grid.ColumnDefinitions>
+                                            <Viewbox Width="18" Height="18" VerticalAlignment="Center">
+                                                <Path Data="M3,5 L17,5 L17,17 L3,17 Z M3,8 L17,8 M7,3 L7,7 M13,3 L13,7"
+                                                      Stroke="{DynamicResource Accent}" StrokeThickness="1.7"
+                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                                            </Viewbox>
+                                            <TextBlock Grid.Column="1" Text="{Binding SelectedDate, StringFormat={}{0:yyyy年M月d日}}"
+                                                       FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="9,0,10,0" />
+                                            <Path Grid.Column="2" Data="M2,4 L6,8 L10,4" Stroke="{DynamicResource MutedInk}"
+                                                  StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                  VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                        </Grid>
+                                    </ToggleButton>
+                                    <Popup x:Name="PeriodDatePopup" PlacementTarget="{Binding ElementName=PeriodDateButton}"
+                                           Placement="Bottom" VerticalOffset="8" AllowsTransparency="True" StaysOpen="False"
+                                           PopupAnimation="Fade" IsOpen="{Binding IsChecked, ElementName=PeriodDateButton, Mode=TwoWay}"
+                                           Opened="PeriodDatePopup_Opened">
+                                        <Border Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Stroke}"
+                                                BorderThickness="1" CornerRadius="12" Padding="10">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="20" ShadowDepth="6" Opacity="0.18" Color="#101425" />
+                                            </Border.Effect>
+                                            <Calendar x:Name="PeriodCalendar" Style="{StaticResource ModernCalendarStyle}" Language="ja-JP"
+                                                      SelectedDate="{Binding SelectedDate, Mode=TwoWay}"
+                                                      DisplayDate="{Binding SelectedDate}"
+                                                      PreviewKeyDown="Calendar_PreviewKeyDown"
+                                                      SelectedDatesChanged="Calendar_SelectedDatesChanged" />
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                                <Border Width="1" Height="22" Background="{DynamicResource Stroke}" Margin="3,8" />
+                                <Button Style="{StaticResource PeriodNavigationButtonStyle}" Content="‹" FontSize="20"
+                                        ToolTip="前の期間" Command="{Binding PreviousCommand}" />
+                                <Button Style="{StaticResource PeriodTodayButtonStyle}" Content="今日"
+                                        ToolTip="今日へ戻る" Command="{Binding TodayCommand}" />
+                                <Button Style="{StaticResource PeriodNavigationButtonStyle}" Content="›" FontSize="20"
+                                        ToolTip="次の期間" Command="{Binding NextCommand}" />
+                            </StackPanel>
+                        </Border>
+                        <Button Style="{StaticResource PeriodRefreshButtonStyle}" Content="更新" Command="{Binding RefreshCommand}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Dashboard -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsDashboard, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Margin="28,24,28,36">
+                    <UniformGrid Columns="4" Margin="0,0,0,20">
+                        <Border Style="{DynamicResource Card}" Margin="0,0,10,0">
+                            <StackPanel><TextBlock Text="今日のPC利用" Foreground="{DynamicResource MutedInk}" /><TextBlock Text="{Binding TodayPcTime}" FontSize="25" FontWeight="Bold" Margin="0,10,0,0" /></StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,10,0">
+                            <StackPanel><TextBlock Text="最も使ったアプリ" Foreground="{DynamicResource MutedInk}" /><Button Style="{StaticResource DrilldownLinkButtonStyle}" Content="{Binding TopApp}" Command="{Binding OpenAppDrilldownCommand}" CommandParameter="{Binding TopApp}" FontSize="19" FontWeight="SemiBold" Margin="0,12,0,0" ToolTip="根拠セッションを表示" /></StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,10,0">
+                            <StackPanel><TextBlock Text="最も見たWebサイト" Foreground="{DynamicResource MutedInk}" /><Button Style="{StaticResource DrilldownLinkButtonStyle}" Content="{Binding TopSite}" Command="{Binding OpenSiteDrilldownCommand}" CommandParameter="{Binding TopSite}" FontSize="19" FontWeight="SemiBold" Margin="0,12,0,0" ToolTip="根拠セッションを表示" /></StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource Card}">
+                            <StackPanel><TextBlock Text="Idle" Foreground="{DynamicResource MutedInk}" /><TextBlock Text="{Binding IdleTime}" FontSize="25" FontWeight="Bold" Margin="0,10,0,0" /></StackPanel>
+                        </Border>
+                    </UniformGrid>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,10,0">
+                            <StackPanel>
+                                <TextBlock Text="アプリ別ランキング" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,14" />
+                                <ItemsControl ItemsSource="{Binding AppRankings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Rank}" Foreground="{DynamicResource MutedInk}" />
+                                                <StackPanel Grid.Column="1"><Button Style="{StaticResource DrilldownLinkButtonStyle}" Content="{Binding Name}" Command="{Binding DataContext.OpenAppDrilldownCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" ToolTip="根拠セッションを表示" /><Border Height="5" Width="{Binding BarWidth}" MaxWidth="240" Background="{DynamicResource Accent}" CornerRadius="3" HorizontalAlignment="Left" Margin="0,6,8,0" /></StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="10,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Webサイト別ランキング" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,14" />
+                                <ItemsControl ItemsSource="{Binding SiteRankings}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Rank}" Foreground="{DynamicResource MutedInk}" />
+                                                <StackPanel Grid.Column="1"><Button Style="{StaticResource DrilldownLinkButtonStyle}" Content="{Binding Name}" Command="{Binding DataContext.OpenSiteDrilldownCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Name}" ToolTip="根拠セッションを表示" /><Border Height="5" Width="{Binding BarWidth}" MaxWidth="240" Background="{DynamicResource WebAccent}" CornerRadius="3" HorizontalAlignment="Left" Margin="0,6,8,0" /></StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="サイト情報はまだありません。ブラウザ拡張の接続状態を確認してください。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,12,0,4"
+                                           Visibility="{Binding HasNoSites, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <Grid Margin="0,20,0,0">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,10,0">
+                            <StackPanel>
+                                <TextBlock Text="今日の集中時間" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Text="{Binding FocusTime}" FontSize="26" FontWeight="Bold" Margin="0,9,0,4" />
+                                <TextBlock Text="{Binding FocusDetail}" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Text="Idleまたは5分以上の空白で区切った、25分以上の実作業ブロック" Foreground="{DynamicResource MutedInk}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                <Button Style="{StaticResource DrilldownLinkButtonStyle}" Content="集中区間の根拠を見る →" Command="{Binding OpenFocusDrilldownCommand}" Margin="0,10,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="10,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="今週のペース" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Text="{Binding WeekComparison}" FontSize="22" FontWeight="Bold" Margin="0,11,0,4" />
+                                <TextBlock Text="{Binding WeekComparisonDetail}" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Text="月曜から現在時刻までを、前週の同じ曜日・時刻までと比較" Foreground="{DynamicResource MutedInk}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <Border Style="{DynamicResource Card}" Margin="0,20,0,0">
+                        <StackPanel>
+                            <TextBlock Text="直近7日の時間帯ヒートマップ" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock Text="色が濃いほど、その時間帯のPC利用時間が長いことを表します。各マスにマウスを置くと正確な時間を確認できます。" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,4,0,12" />
+                            <Grid Margin="88,0,0,4">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="0" FontSize="10" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Grid.Column="1" Text="6" FontSize="10" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Grid.Column="2" Text="12" FontSize="10" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Grid.Column="3" Text="18" FontSize="10" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Grid.Column="4" Text="24" FontSize="10" Foreground="{DynamicResource MutedInk}" HorizontalAlignment="Right" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding HeatmapDays}">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="82" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Day}" FontSize="11" Foreground="{DynamicResource MutedInk}" VerticalAlignment="Center" />
+                                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Hours}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" Columns="24" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate><DataTemplate>
+                                                <Border Height="18" Margin="1" CornerRadius="2" Background="{DynamicResource Accent}" Opacity="{Binding Opacity}" ToolTip="{Binding ToolTip}" />
+                                            </DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{DynamicResource Card}" Margin="0,20,0,0">
+                        <StackPanel>
+                            <TextBlock Text="配信者・チャンネル別ランキング" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,14" />
+                            <ItemsControl ItemsSource="{Binding CreatorRankings}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Rank}" Foreground="{DynamicResource MutedInk}" />
+                                            <StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><Border Height="5" Width="{Binding BarWidth}" MaxWidth="240" Background="{DynamicResource CreatorAccent}" CornerRadius="3" HorizontalAlignment="Left" Margin="0,6,8,0" /></StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="配信者・チャンネル情報はまだありません。拡張機能を再読み込み後、YouTubeのタブも再読み込みしてください。"
+                                       Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,12,0,4"
+                                       Visibility="{Binding HasNoCreators, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{DynamicResource Card}" Margin="0,20,0,0">
+                        <StackPanel>
+                            <TextBlock Text="直近7日の日別作業時間" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,14" />
+                            <ItemsControl ItemsSource="{Binding DailyUsage}">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="100" /><ColumnDefinition Width="340" /><ColumnDefinition Width="110" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Day}" />
+                                        <Border Grid.Column="1" Background="{DynamicResource Track}" Height="12" CornerRadius="6"><Border Width="{Binding BarWidth}" Background="{DynamicResource Accent}" CornerRadius="6" HorizontalAlignment="Left" /></Border>
+                                        <TextBlock Grid.Column="2" Text="{Binding Duration}" Margin="14,0,0,0" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="3" Text="{Binding IdleDuration}" Foreground="{DynamicResource MutedInk}" />
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Today / Day -->
+            <Grid Grid.Row="1" Margin="28,24,28,36"
+                  Visibility="{Binding IsTimeline, Converter={StaticResource BoolToVisibility}}">
+                <Border Style="{DynamicResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="時系列アクティビティ" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="1" Text="{Binding TodayPcTime}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" />
+                        </Grid>
+                        <ListBox Grid.Row="1" ItemsSource="{Binding Timeline}" BorderThickness="0" Background="Transparent"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                 ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="BorderThickness" Value="0" />
+                                    <Setter Property="Focusable" Value="False" />
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="Template">
+                                        <Setter.Value><ControlTemplate TargetType="ListBoxItem"><ContentPresenter /></ControlTemplate></Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,2">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="110" /><ColumnDefinition Width="22" /><ColumnDefinition Width="*" /><ColumnDefinition Width="90" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding TimeRange}" Foreground="{DynamicResource MutedInk}" VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Width="10" Height="10" CornerRadius="5" VerticalAlignment="Center">
+                                            <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="{DynamicResource Accent}" /><Style.Triggers><DataTrigger Binding="{Binding IsIdle}" Value="True"><Setter Property="Background" Value="#A9B0BF" /></DataTrigger><DataTrigger Binding="{Binding IsWebsite}" Value="True"><Setter Property="Background" Value="#32B8B0" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                                        </Border>
+                                        <Border Grid.Column="2" Background="{DynamicResource SubtlePanel}" CornerRadius="8" Padding="14,10" Margin="0,4,12,4">
+                                            <StackPanel><TextBlock Text="{Binding Title}" FontWeight="SemiBold" /><TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource MutedInk}" FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,3,0,0" /></StackPanel>
+                                        </Border>
+                                        <TextBlock Grid.Column="3" Text="{Binding Duration}" VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Grid.Row="1" Text="記録がまだありません。アプリを起動したまましばらく操作してください。"
+                                   Foreground="{DynamicResource MutedInk}" HorizontalAlignment="Center" VerticalAlignment="Top"
+                                   Margin="0,30" IsHitTestVisible="False"
+                                   Visibility="{Binding HasNoTimeline, Converter={StaticResource BoolToVisibility}}" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Analysis Explorer / non-destructive corrections -->
+            <Grid Grid.Row="1" Margin="28,20,28,30"
+                  Visibility="{Binding IsExplorer, Converter={StaticResource BoolToVisibility}}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Style="{DynamicResource Card}" Margin="0,0,0,12" Padding="16">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="125" /><ColumnDefinition Width="112" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox ItemsSource="{Binding ExplorerRanges}" SelectedItem="{Binding ExplorerRange}"
+                                      Padding="7" ToolTip="検索期間" />
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding TimelineZoomChoices}"
+                                      SelectedItem="{Binding TimelineZoomMinutes}" Padding="7" Margin="8,0,0,0"
+                                      ToolTip="タイムライン表示粒度（分）" />
+                            <TextBox Grid.Column="2" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Padding="9" Margin="8,0" ToolTip="タイトル、URL、メモなどを横断検索" />
+                            <Button Grid.Column="3" Style="{DynamicResource PrimaryButton}" Content="検索"
+                                    Command="{Binding SearchExplorerCommand}" Padding="18,8" />
+                            <Button Grid.Column="4" Style="{DynamicResource SecondaryButton}" Content="条件をクリア"
+                                    Command="{Binding ClearExplorerCommand}" Padding="14,8" Margin="8,0,0,0" />
+                        </Grid>
+                        <UniformGrid Columns="5" Margin="0,10,0,0">
+                            <StackPanel Margin="0,0,6,0"><TextBlock Text="アプリ" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchApp, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
+                            <StackPanel Margin="6,0"><TextBlock Text="ドメイン" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchDomain, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
+                            <StackPanel Margin="6,0"><TextBlock Text="配信者・チャンネル" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchCreator, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
+                            <StackPanel Margin="6,0"><TextBlock Text="カテゴリ" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchCategory, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
+                            <StackPanel Margin="6,0,0,0"><TextBlock Text="プロジェクト" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchProject, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
+                        </UniformGrid>
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <CheckBox Content="Idleを含む" IsChecked="{Binding SearchIncludeIdle}" Margin="0,0,20,0" />
+                            <CheckBox Content="25分以上の集中区間だけ" IsChecked="{Binding SearchOnlyFocus}" Margin="0,0,20,0" />
+                            <CheckBox Content="切替に関係する区間だけ" IsChecked="{Binding SearchOnlySwitches}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <TextBlock Grid.Row="1" Text="{Binding ExplorerStatus}" Foreground="{DynamicResource MutedInk}"
+                           Margin="4,0,0,10" />
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="340" /></Grid.ColumnDefinitions>
+                    <Border Style="{DynamicResource Card}" Margin="0,0,10,0" Padding="12">
+                        <Grid>
+                            <ListBox ItemsSource="{Binding ExplorerTimeline}" SelectedItem="{Binding SelectedExplorerItem, Mode=TwoWay}"
+                                     BorderThickness="0" Background="Transparent" ScrollViewer.CanContentScroll="True"
+                                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                                <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0,0,0,3" />
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="ResultBorder" Background="{TemplateBinding Background}" CornerRadius="8" Padding="8">
+                                                <ContentPresenter /></Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ResultBorder" Property="Background" Value="{DynamicResource AccentSoft}" /></Trigger>
+                                                <Trigger Property="IsSelected" Value="True"><Setter TargetName="ResultBorder" Property="Background" Value="{DynamicResource AccentSoft}" /><Setter TargetName="ResultBorder" Property="BorderBrush" Value="{DynamicResource Accent}" /><Setter TargetName="ResultBorder" Property="BorderThickness" Value="1" /></Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate></Setter.Value></Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate><DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="116" /><ColumnDefinition Width="*" /><ColumnDefinition Width="82" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding TimeRange}" Foreground="{DynamicResource MutedInk}" VerticalAlignment="Top" Margin="0,3,8,0" />
+                                        <StackPanel Grid.Column="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <Border Background="{DynamicResource AccentSoft}" CornerRadius="8" Padding="7,2" Margin="8,0,0,0"><TextBlock Text="{Binding Category}" Foreground="{DynamicResource Accent}" FontSize="10" /></Border>
+                                                <Border Background="#1F22C55E" CornerRadius="8" Padding="6,2" Margin="5,0,0,0" Visibility="{Binding IsFocus, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="集中" Foreground="{DynamicResource Success}" FontSize="10" /></Border>
+                                                <Border Background="#1FF59E0B" CornerRadius="8" Padding="6,2" Margin="5,0,0,0" Visibility="{Binding IsSwitch, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="切替" Foreground="#D97706" FontSize="10" /></Border>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource MutedInk}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
+                                            <TextBlock Text="{Binding CategoryReason}" Foreground="{DynamicResource MutedInk}" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding Duration}" HorizontalAlignment="Right" VerticalAlignment="Top" FontWeight="SemiBold" Margin="8,3,0,0" />
+                                    </Grid>
+                                </DataTemplate></ListBox.ItemTemplate>
+                            </ListBox>
+                            <TextBlock Text="条件に一致する記録がありません" HorizontalAlignment="Center" VerticalAlignment="Top"
+                                       Margin="0,30" Foreground="{DynamicResource MutedInk}" IsHitTestVisible="False"
+                                       Visibility="{Binding HasNoExplorerResults, Converter={StaticResource BoolToVisibility}}" />
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="10,0,0,0" Padding="16">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel IsEnabled="{Binding HasSelectedExplorerItem}">
+                                <TextBlock Text="選択区間を補正" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="自動記録は変更せず、取り消せる注釈として保存します。行を選んで時刻や内容を調整できます。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,0,14" />
+                                <TextBlock Text="開始（yyyy/MM/dd HH:mm）" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <TextBox Text="{Binding AnnotationStart, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,3,0,9" />
+                                <TextBlock Text="終了（yyyy/MM/dd HH:mm）" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <TextBox Text="{Binding AnnotationEnd, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,3,0,9" />
+                                <TextBlock Text="プロジェクト" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <TextBox Text="{Binding AnnotationProject, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,3,0,9" />
+                                <TextBlock Text="タスク" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <TextBox Text="{Binding AnnotationTask, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,3,0,9" />
+                                <TextBlock Text="カテゴリ補正（例: 仕事 &gt; 開発）" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <TextBox Text="{Binding AnnotationCategory, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,3,0,9" />
+                                <TextBlock Text="メモ" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <TextBox Text="{Binding AnnotationNote, UpdateSourceTrigger=PropertyChanged}" Padding="8" Height="70"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,3,0,12" />
+                                <Button Style="{DynamicResource PrimaryButton}" Content="補正を保存" Command="{Binding SaveAnnotationCommand}" Padding="16,9" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="この補正を取り消す" Command="{Binding DeleteAnnotationCommand}"
+                                        Padding="16,9" Margin="0,8,0,0" Visibility="{Binding CanDeleteAnnotation, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </Grid>
+
+            <!-- Week / Month -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsReport, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Margin="28,24,28,36">
+                    <Grid Margin="0,0,0,20"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,10,0"><StackPanel><TextBlock Text="合計PC利用時間" Foreground="{DynamicResource MutedInk}" /><TextBlock Text="{Binding PeriodTotal}" FontSize="28" FontWeight="Bold" Margin="0,8,0,0" /></StackPanel></Border>
+                        <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="10,0,0,0"><StackPanel><TextBlock Text="非操作時間" Foreground="{DynamicResource MutedInk}" /><TextBlock Text="{Binding IdleTime}" FontSize="28" FontWeight="Bold" Margin="0,8,0,0" /></StackPanel></Border>
+                    </Grid>
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,20">
+                        <StackPanel>
+                            <TextBlock Text="日別利用時間" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16" />
+                            <ItemsControl ItemsSource="{Binding DailyUsage}">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="100" /><ColumnDefinition Width="340" /><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Day}" />
+                                        <Border Grid.Column="1" Background="{DynamicResource Track}" Height="14" CornerRadius="7"><Border Width="{Binding BarWidth}" Background="{DynamicResource Accent}" CornerRadius="7" HorizontalAlignment="Left" /></Border>
+                                        <TextBlock Grid.Column="2" Text="{Binding Duration}" Margin="14,0,0,0" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="3" Text="{Binding IdleDuration}" Foreground="{DynamicResource MutedInk}" />
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                    <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,8,8"><StackPanel><TextBlock Text="アプリ別" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,12" /><ItemsControl ItemsSource="{Binding AppRankings}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="8,0,0,0" /></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+                        <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="8,0,0,8"><StackPanel><TextBlock Text="Webサイト別" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,12" /><ItemsControl ItemsSource="{Binding SiteRankings}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="8,0,0,0" /></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+                        <Border Grid.Row="1" Style="{DynamicResource Card}" Margin="0,8,8,0"><StackPanel><TextBlock Text="配信者・チャンネル別" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,12" /><ItemsControl ItemsSource="{Binding CreatorRankings}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="8,0,0,0" /></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{DynamicResource Card}" Margin="8,8,0,0"><StackPanel><TextBlock Text="カテゴリ別" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,12" /><ItemsControl ItemsSource="{Binding CategoryRankings}"><ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="8,0,0,0" /></Grid></DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></Border>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Behavior Analysis -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsAnalysis, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Margin="28,24,28,40">
+                    <UniformGrid Columns="4" Margin="0,0,0,18">
+                        <Border Style="{DynamicResource Card}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="集中品質" Foreground="{DynamicResource MutedInk}" />
+                                <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                                    <TextBlock Text="{Binding FocusQualityScore}" FontSize="30" FontWeight="Bold" Foreground="{DynamicResource Accent}" />
+                                    <TextBlock Text=" / 100" Foreground="{DynamicResource MutedInk}" VerticalAlignment="Bottom" Margin="3,0,0,5" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding FocusQualityGrade}" FontWeight="SemiBold" Margin="0,4,0,0" />
+                                <Button Style="{StaticResource DrilldownLinkButtonStyle}" Content="集中区間を見る →" Command="{Binding OpenFocusDrilldownCommand}" Margin="0,7,0,0" FontSize="11" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource Card}" Margin="6,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="コンテキスト切替" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Text="{Binding ContextSwitchCount}" FontSize="26" FontWeight="Bold" Margin="0,9,0,2" />
+                                <TextBlock Text="{Binding SwitchesPerHour}" Foreground="{DynamicResource MutedInk}" />
+                                <Button Style="{StaticResource DrilldownLinkButtonStyle}" Content="切替区間を見る →" Command="{Binding OpenSwitchDrilldownCommand}" Margin="0,7,0,0" FontSize="11" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource Card}" Margin="6,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="平均セッション" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Text="{Binding AverageSessionDuration}" FontSize="26" FontWeight="Bold" Margin="0,9,0,2" />
+                                <TextBlock Text="同じアプリ・サイトの連続利用" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{DynamicResource Card}" Margin="6,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="5分未満のセッション" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Text="{Binding ShortSessionSummary}" FontSize="23" FontWeight="Bold" Margin="0,10,0,2" />
+                                <TextBlock Text="細切れになった作業" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,9,0">
+                            <StackPanel>
+                                <TextBlock Text="切替先の上位" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="5分以内に別のアプリ・サイトへ移った回数です。" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,12" />
+                                <ItemsControl ItemsSource="{Binding SwitchDestinations}">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="12,0,0,0" />
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="9,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="集中品質の根拠" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding FocusQualityDetail}" FontSize="16" FontWeight="SemiBold" Margin="0,12,0,8" TextWrapping="Wrap" />
+                                <TextBlock Text="25分以上の連続作業、最長集中、平均セッションを加点し、頻繁な切替と短時間セッションを減点します。Idleは採点から除外します。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" />
+                                <ItemsControl ItemsSource="{Binding FocusScoreComponents}" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="140" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="11" TextAlignment="Right" />
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Style="{DynamicResource Card}" Margin="0,0,9,0">
+                            <StackPanel>
+                                <TextBlock Text="割り込み後の復帰" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding AverageRecoveryTime}" FontSize="25" FontWeight="Bold" Foreground="{DynamicResource Accent}" Margin="0,8,0,2" />
+                                <TextBlock Text="{Binding RecoverySummary}" Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" />
+                                <TextBlock Text="主な割り込み元" FontWeight="SemiBold" Margin="0,13,0,6" />
+                                <ItemsControl ItemsSource="{Binding InterruptionSources}">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" />
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="5分以上続けた作業から別の対象へ移り、30分以内に元へ戻った場合を復帰として計測します。"
+                                           Foreground="{DynamicResource MutedInk}" FontSize="10" TextWrapping="Wrap" Margin="0,9,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="9,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="集中しやすい時間帯" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="10分以上の実作業がある時間帯を、25分以上の作業ブロック率で比較します。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,0,9" />
+                                <ItemsControl ItemsSource="{Binding FocusHours}">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" Foreground="{DynamicResource Accent}" />
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Text="連続集中の分布" FontWeight="SemiBold" Margin="0,13,0,6" />
+                                <ItemsControl ItemsSource="{Binding FocusDistribution}">
+                                    <ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid Margin="0,2"><Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource MutedInk}" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Value}" />
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="前週からの増減要因" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding AnalysisComparisonSummary}" Foreground="{DynamicResource Accent}" FontWeight="SemiBold" Margin="0,6,0,14" />
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="76" /><ColumnDefinition Width="*" /><ColumnDefinition Width="95" /><ColumnDefinition Width="22" /><ColumnDefinition Width="95" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="区分" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Grid.Column="1" Text="項目" Foreground="{DynamicResource MutedInk}" />
+                                <TextBlock Grid.Column="2" Text="前週" Foreground="{DynamicResource MutedInk}" TextAlignment="Right" />
+                                <TextBlock Grid.Column="4" Text="今週" Foreground="{DynamicResource MutedInk}" TextAlignment="Right" />
+                                <TextBlock Grid.Column="5" Text="増減" Foreground="{DynamicResource MutedInk}" TextAlignment="Right" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding PeriodChanges}">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Margin="0,3" Background="{DynamicResource SubtlePanel}">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="76" /><ColumnDefinition Width="*" /><ColumnDefinition Width="95" /><ColumnDefinition Width="22" /><ColumnDefinition Width="95" /><ColumnDefinition Width="110" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Scope}" Padding="8,7" Foreground="{DynamicResource MutedInk}" />
+                                        <Button Grid.Column="1" Style="{StaticResource DrilldownLinkButtonStyle}" Content="{Binding Name}"
+                                                Command="{Binding DataContext.OpenComparisonDrilldownCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" Padding="8,7" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Previous}" Padding="0,7" TextAlignment="Right" />
+                                        <TextBlock Grid.Column="3" Text="→" Padding="4,7" Foreground="{DynamicResource MutedInk}" TextAlignment="Center" />
+                                        <TextBlock Grid.Column="4" Text="{Binding Current}" Padding="0,7" TextAlignment="Right" />
+                                        <TextBlock Grid.Column="5" Text="{Binding Change}" Padding="8,7" TextAlignment="Right" FontWeight="SemiBold">
+                                            <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource MutedInk}" /><Style.Triggers><DataTrigger Binding="{Binding IsIncrease}" Value="True"><Setter Property="Foreground" Value="{DynamicResource Accent}" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{DynamicResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="カテゴリ分類ルール" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="階層カテゴリ、ワイルドカード／正規表現、色、優先度を設定できます。保存前に該当時間と競合を確認できます。"
+                                       Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,0,14" />
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition Width="120" /><ColumnDefinition Width="*" /><ColumnDefinition Width="210" /></Grid.ColumnDefinitions>
+                                <ComboBox ItemsSource="{Binding CategoryRuleTargets}" SelectedItem="{Binding NewCategoryRuleTarget}" Padding="6" />
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding CategoryRuleMatchModes}" SelectedItem="{Binding NewCategoryRuleMatchMode}" Padding="6" Margin="8,0,0,0" />
+                                <TextBox Grid.Column="2" Text="{Binding NewCategoryRulePattern, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="8,0" ToolTip="例: github.com、Visual Studio Code、*music*、^docs\\." />
+                                <ComboBox Grid.Column="3" ItemsSource="{Binding CategoryChoices}" Text="{Binding NewCategoryRuleCategory, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEditable="True" Padding="6" />
+                            </Grid>
+                            <Grid Margin="0,9,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="135" /><ColumnDefinition Width="120" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding NewCategoryRuleColor, UpdateSourceTrigger=PropertyChanged}" Padding="8" ToolTip="カテゴリ色 #RRGGBB" />
+                                <TextBox Grid.Column="1" Text="{Binding NewCategoryRulePriority, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="8,0,0,0" ToolTip="優先度 0〜1000" />
+                                <TextBlock Grid.Column="2" Text="{Binding CategoryRulePreview}" Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0" />
+                                <Button Grid.Column="3" Style="{DynamicResource SecondaryButton}" Content="プレビュー" Command="{Binding PreviewCategoryRuleCommand}" Padding="14,8" />
+                                <Button Grid.Column="4" Style="{DynamicResource PrimaryButton}" Content="ルールを保存" Command="{Binding AddCategoryRuleCommand}" Padding="14,8" Margin="8,0,0,0" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding CategoryRules}" Margin="0,14,0,0">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Margin="0,3" Background="{DynamicResource SubtlePanel}">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="120" /><ColumnDefinition Width="105" /><ColumnDefinition Width="*" /><ColumnDefinition Width="210" /><ColumnDefinition Width="42" /><ColumnDefinition Width="75" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Target}" Padding="10,7" Foreground="{DynamicResource MutedInk}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding MatchMode}" Padding="7" Foreground="{DynamicResource MutedInk}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Pattern}" Padding="10,7" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Category}" Padding="10,7" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" TextTrimming="CharacterEllipsis" />
+                                        <Border Grid.Column="4" Width="16" Height="16" CornerRadius="8" Background="{Binding Color}" VerticalAlignment="Center" ToolTip="{Binding Color}" />
+                                        <TextBlock Grid.Column="5" Text="{Binding Priority, StringFormat=優先 {0}}" Padding="4,7" Foreground="{DynamicResource MutedInk}" />
+                                        <Button Grid.Column="6" Content="削除" Command="{Binding DataContext.RemoveCategoryRuleCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding Id}" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Danger}" Padding="10,7" Cursor="Hand" />
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- AI Daily / Weekly Reports -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsAiReports, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Margin="28,24,28,40" MaxWidth="920" HorizontalAlignment="Left">
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="ローカルAIで振り返る" FontSize="20" FontWeight="SemiBold" />
+                                    <TextBlock Text="アプリ・サイト・カテゴリ・集中時間などの集計値だけをOllamaへ渡します。URL、ウィンドウタイトル、ページタイトルは渡しません。"
+                                               Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,6,24,0" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                                        <TextBlock Text="{Binding OllamaConnectionStatus}" Foreground="{DynamicResource Success}" />
+                                        <TextBlock Text="  ・  モデル: " Foreground="{DynamicResource MutedInk}" />
+                                        <TextBlock Text="{Binding OllamaModel}" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="日報" Command="{Binding SelectDailyAiReportCommand}" Margin="0,0,7,0" />
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="週報" Command="{Binding SelectWeeklyAiReportCommand}" />
+                                </StackPanel>
+                            </Grid>
+                            <Separator Margin="0,16" />
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock FontSize="17" FontWeight="SemiBold"><Run Text="{Binding AiPeriodLabel, Mode=OneWay}" /><Run Text=" の" /><Run Text="{Binding AiReportTypeLabel, Mode=OneWay}" /></TextBlock>
+                                    <TextBlock Text="{Binding AiReportMetadata}" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" />
+                                    <TextBlock Text="{Binding AiReportStatus}" Foreground="{DynamicResource Success}" TextWrapping="Wrap" Margin="0,7,20,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{DynamicResource PrimaryButton}" Content="生成 / 再生成" Command="{Binding GenerateAiReportCommand}" Margin="0,0,7,0" />
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="中止" Command="{Binding CancelAiReportCommand}" Margin="0,0,7,0"
+                                            Visibility="{Binding IsAiGenerating, Converter={StaticResource BoolToVisibility}}" />
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="コピー" Click="CopyAiReport_Click" />
+                                </StackPanel>
+                            </Grid>
+                            <ProgressBar Height="3" IsIndeterminate="True" Margin="0,14,0,0"
+                                         Visibility="{Binding IsAiGenerating, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="AIレポートの根拠" FontSize="17" FontWeight="SemiBold" />
+                                    <TextBlock Text="生成AIへ渡したものと同じ集計値です。個別URLやウィンドウタイトルは含みません。"
+                                               Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,16,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                    <TextBlock Text="鮮度" Foreground="{DynamicResource MutedInk}" HorizontalAlignment="Right" />
+                                    <TextBlock Text="{Binding AiFreshnessStatus}" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               MaxWidth="360" TextAlignment="Right" Margin="12,3,0,0" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Text="{Binding AiEvidenceSummary}" Foreground="{DynamicResource Success}" FontWeight="SemiBold" Margin="0,14,0,12" />
+                            <UniformGrid Columns="3">
+                                <StackPanel Margin="0,0,16,0">
+                                    <TextBlock Text="アプリ 上位5件" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <ItemsControl ItemsSource="{Binding AiEvidenceApps}">
+                                        <ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="8,0,0,0" /></Grid></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                <StackPanel Margin="8,0">
+                                    <TextBlock Text="サイト 上位5件" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <ItemsControl ItemsSource="{Binding AiEvidenceSites}">
+                                        <ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="8,0,0,0" /></Grid></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                                <StackPanel Margin="16,0,0,0">
+                                    <TextBlock Text="カテゴリ 上位5件" FontWeight="SemiBold" Margin="0,0,0,6" />
+                                    <ItemsControl ItemsSource="{Binding AiEvidenceCategories}">
+                                        <ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="8,0,0,0" /></Grid></DataTemplate></ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{DynamicResource Card}">
+                        <TextBox Text="{Binding AiReportContent, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True"
+                                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MinHeight="420"
+                                 Padding="4" BorderThickness="0" Background="Transparent" FontSize="14"
+                                 FontFamily="Segoe UI" SelectionBrush="{DynamicResource Accent}" />
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Settings -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsSettings, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel Margin="28,24,28,40" MaxWidth="850" HorizontalAlignment="Left">
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="外観テーマ" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="変更はすぐに反映されます。「設定を保存」で次回起動時にも引き継ぎます。"
+                                       Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,0,14" />
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="表示テーマ" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="Windows連動" Command="{Binding SelectThemeCommand}" CommandParameter="System" Margin="0,0,7,0" />
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="ライト" Command="{Binding SelectThemeCommand}" CommandParameter="Light" Margin="0,0,7,0" />
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="ダーク" Command="{Binding SelectThemeCommand}" CommandParameter="Dark" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="{Binding EffectiveTheme, StringFormat=現在の表示: {0}}" Foreground="{DynamicResource MutedInk}" Margin="12,0,0,0" VerticalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="記録設定" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,16" />
+                            <TextBlock Text="{Binding TrackingStatus}" FontWeight="SemiBold" Foreground="{DynamicResource Success}" Margin="0,0,0,12" />
+                            <CheckBox Content="作業履歴を記録する" IsChecked="{Binding RecordingEnabled}" Margin="0,6" />
+                            <CheckBox Content="完全なURLを記録する（OFF時もドメインは記録）" IsChecked="{Binding RecordUrls}" Margin="0,6" />
+                            <CheckBox Content="Webページタイトルを記録する" IsChecked="{Binding RecordPageTitles}" Margin="0,6" />
+                            <CheckBox Content="ウィンドウタイトルを記録する（文書名やメール件名を含む場合があります）" IsChecked="{Binding RecordWindowTitles}" Margin="0,6" />
+                            <CheckBox Content="YouTubeのチャンネル名・Twitchの配信者名を記録する" IsChecked="{Binding RecordCreatorNames}" Margin="0,6" />
+                            <Separator Margin="0,12" />
+                            <CheckBox Content="Windowsへのサインイン時に自動起動する" IsChecked="{Binding StartWithWindows}" Margin="0,6" />
+                            <CheckBox Content="起動時は画面を開かず通知領域に常駐する" IsChecked="{Binding StartMinimized}" Margin="0,6" />
+                            <CheckBox Content="1日1回、自動バックアップを作成する" IsChecked="{Binding AutomaticBackupsEnabled}" Margin="0,6" />
+                            <Grid Margin="0,14,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="Idle判定（分）" VerticalAlignment="Center" /><TextBox Grid.Column="1" Text="{Binding IdleThresholdMinutes, UpdateSourceTrigger=PropertyChanged}" Padding="7" /><TextBlock Grid.Column="2" Text="1〜60分" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </Grid>
+                            <Grid Margin="0,10,0,0"><Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="保存期間（日）" VerticalAlignment="Center" /><TextBox Grid.Column="1" Text="{Binding RetentionDays, UpdateSourceTrigger=PropertyChanged}" Padding="7" /><TextBlock Grid.Column="2" Text="起動時および常駐中に期限切れデータを削除" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </Grid>
+                            <Button Style="{DynamicResource PrimaryButton}" Content="設定を保存" Command="{Binding SaveSettingsCommand}" HorizontalAlignment="Left" Margin="0,18,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="ローカルAI（Ollama）" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="日報・週報の生成時だけ使用します。接続先はプライバシー保護のため localhost / 127.0.0.1 / ::1 のみ許可されます。"
+                                       Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,0,14" />
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="Ollama接続先" VerticalAlignment="Center" />
+                                <TextBox Grid.Column="1" Text="{Binding OllamaEndpoint, UpdateSourceTrigger=PropertyChanged}" Padding="8" />
+                                <Button Grid.Column="2" Style="{DynamicResource SecondaryButton}" Content="接続確認" Command="{Binding RefreshOllamaCommand}" Margin="8,0,0,0" />
+                            </Grid>
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="使用モデル" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding OllamaModels}" Text="{Binding OllamaModel, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEditable="True" IsTextSearchEnabled="True" Padding="6" />
+                            </Grid>
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="生成タイムアウト（分）" VerticalAlignment="Center" />
+                                <TextBox Grid.Column="1" Text="{Binding OllamaTimeoutMinutes, UpdateSourceTrigger=PropertyChanged}" Padding="7" />
+                                <TextBlock Grid.Column="2" Text="1〜60分" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" VerticalAlignment="Center" />
+                            </Grid>
+                            <CheckBox Content="生成完了後にモデルをGPUメモリから解放する（推奨）" IsChecked="{Binding UnloadOllamaAfterGeneration}" Margin="0,14,0,0" />
+                            <CheckBox Content="Ollamaで別のモデルが実行中なら生成しない（推奨）" IsChecked="{Binding RequireIdleOllama}" Margin="0,10,0,0" />
+                            <CheckBox Content="ゲームがForeground中は生成せず、生成中にゲームへ戻ったら中止する" IsChecked="{Binding GameSafeModeEnabled}" Margin="0,10,0,0" />
+                            <Grid Margin="0,12,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="保護対象プロセス名" VerticalAlignment="Center" />
+                                <TextBox Grid.Column="1" Text="{Binding GameProcessNames, UpdateSourceTrigger=PropertyChanged}" Padding="8"
+                                         ToolTip="カンマ区切り。拡張子 .exe は省略できます。" />
+                            </Grid>
+                            <TextBlock Text="{Binding GameSafetyStatus}" Foreground="{DynamicResource Success}" TextWrapping="Wrap" Margin="0,10,0,0" />
+                            <TextBlock Text="{Binding OllamaConnectionStatus}" Foreground="{DynamicResource Success}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                <Button Style="{DynamicResource PrimaryButton}" Content="AI設定を保存" Command="{Binding SaveSettingsCommand}" Margin="0,0,8,0" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="接続確認" Command="{Binding RefreshOllamaCommand}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="除外ルール" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="完全一致、または * を使ったワイルドカード。ドメインはサブドメインも除外します。" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,14" />
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="18" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding NewAppExclusion, UpdateSourceTrigger=PropertyChanged}" Padding="8" ToolTip="例: Discord または game*" />
+                                <Button Grid.Column="1" Style="{DynamicResource SecondaryButton}" Content="アプリ除外を追加" Command="{Binding AddAppExclusionCommand}" Margin="6,0,0,0" />
+                                <TextBox Grid.Column="3" Text="{Binding NewDomainExclusion, UpdateSourceTrigger=PropertyChanged}" Padding="8" ToolTip="例: bank.example" />
+                                <Button Grid.Column="4" Style="{DynamicResource SecondaryButton}" Content="サイト除外を追加" Command="{Binding AddDomainExclusionCommand}" Margin="6,0,0,0" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding Exclusions}" Margin="0,14,0,0">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Margin="0,3" Background="{DynamicResource SubtlePanel}"><Grid.ColumnDefinitions><ColumnDefinition Width="90" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Type}" Padding="10,7" Foreground="{DynamicResource MutedInk}" /><TextBlock Grid.Column="1" Text="{Binding Value}" Padding="10,7" />
+                                        <Button Grid.Column="2" Content="削除" Command="{Binding DataContext.RemoveExclusionCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding Id}" Background="Transparent" BorderThickness="0" Foreground="{DynamicResource Danger}" Padding="10,7" Cursor="Hand" />
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{DynamicResource Card}" Margin="0,0,0,18">
+                        <StackPanel>
+                            <TextBlock Text="Chrome / Edge / Brave 連携" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="ブラウザ拡張IDを登録してからトークンを貼り付けてください。通信は外部ネットワークやlocalhostを使わず、Chromium Native Messagingと現在のWindowsユーザー専用Pipeだけを使います。" Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,0,12" />
+                            <Grid Margin="0,0,0,12">
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="170" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="接続状態" Foreground="{DynamicResource MutedInk}" /><TextBlock Grid.Column="1" Text="{Binding BrowserConnectionState}" FontWeight="SemiBold" />
+                                <TextBlock Grid.Row="1" Text="安全なローカル待受" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BridgeStatus}" Margin="0,5,0,0" />
+                                <TextBlock Grid.Row="2" Text="最終受信" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding BrowserLastReceived}" Margin="0,5,0,0" />
+                                <TextBlock Grid.Row="3" Text="最後の情報" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding BrowserLastActivity}" TextTrimming="CharacterEllipsis" Margin="0,5,0,0" />
+                                <TextBlock Grid.Row="4" Text="拡張バージョン" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,5,0,0"><TextBlock Text="{Binding BrowserExtensionVersion}" /><TextBlock Text="  —  " Foreground="{DynamicResource MutedInk}" /><TextBlock Text="{Binding BrowserExtensionStatus}" /></StackPanel>
+                                <TextBlock Grid.Row="5" Text="通信カウンター" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding BrowserRequestCounts}" Margin="0,5,0,0" TextWrapping="Wrap" />
+                                <TextBlock Grid.Row="6" Text="ペアリング" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding BrowserPairingStatus}" Margin="0,5,0,0" TextWrapping="Wrap" />
+                            </Grid>
+                            <Grid Margin="0,0,0,8"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding BrowserExtensionId, UpdateSourceTrigger=PropertyChanged}" Padding="9" FontFamily="Consolas" ToolTip="拡張機能の設定画面に表示される32文字の拡張ID" />
+                                <Button Grid.Column="1" Style="{DynamicResource PrimaryButton}" Content="拡張IDを登録" Click="RegisterBrowserExtension_Click" Margin="8,0,0,0" />
+                            </Grid>
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding BrowserBridgeToken, Mode=OneWay}" IsReadOnly="True" Padding="9" FontFamily="Consolas" />
+                                <Button Grid.Column="1" Style="{DynamicResource SecondaryButton}" Content="コピー" Click="CopyToken_Click" Margin="8,0,0,0" />
+                                <Button Grid.Column="2" Style="{DynamicResource SecondaryButton}" Content="連携をリセット" Click="ResetBrowserPairing_Click" Margin="8,0,0,0" />
+                            </Grid>
+                            <TextBlock Text="拡張IDはChrome/Edgeの拡張設定画面からコピーします。登録後にブラウザを再起動してください。リセットするとNative Messaging登録も削除されます。" Foreground="{DynamicResource MutedInk}" FontSize="11" TextWrapping="Wrap" Margin="0,9,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{DynamicResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="ローカルデータ" FontSize="18" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding DatabasePath}" Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,8,0,12" />
+                            <TextBlock Text="{Binding DatabaseProtectionStatus}" Foreground="{DynamicResource Positive}" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <TextBlock Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,0,0,12"><Run Text="診断ログ: " /><Run Text="{Binding DiagnosticLogPath, Mode=OneWay}" /></TextBlock>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Style="{DynamicResource SecondaryButton}" Content="保存フォルダーを開く" Click="OpenDataFolder_Click" Margin="0,0,8,0" />
+                                <Button Style="{DynamicResource PrimaryButton}" Content="今すぐバックアップ" Click="CreateBackup_Click" Margin="0,0,8,0" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="匿名化診断ZIP" Click="ExportDiagnostics_Click" Margin="0,0,8,0" />
+                                <Button Content="履歴を完全削除" Click="DeleteAll_Click" Background="{DynamicResource DangerBackground}" Foreground="{DynamicResource Danger}" BorderBrush="{DynamicResource DangerBorder}" BorderThickness="1" Padding="12,7" Cursor="Hand" />
+                            </StackPanel>
+                            <TextBlock Text="完全削除はActivity、AIレポート、バックアップ、診断ログを対象とし、復元できません。" Foreground="{DynamicResource Danger}" FontSize="11" TextWrapping="Wrap" Margin="0,10,0,0" />
+                            <TextBlock Text="匿名化診断ZIPにはDBや履歴内容を含めず、環境情報・件数・エラー種別だけを保存します。" Foreground="{DynamicResource MutedInk}" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0" />
+                            <TextBlock Text="{Binding AppVersion, StringFormat=PC Activity Tracker {0}}" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,10,0,0" />
+                            <TextBlock Text="バックアップ（最新20件）" FontWeight="SemiBold" Margin="0,18,0,6" />
+                            <TextBlock Text="{Binding BackupDirectory}" Foreground="{DynamicResource MutedInk}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8" />
+                            <ItemsControl ItemsSource="{Binding Backups}">
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Margin="0,3" Background="{DynamicResource SubtlePanel}"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="145" /><ColumnDefinition Width="70" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}" Padding="9,7" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Created}" Padding="9,7" Foreground="{DynamicResource MutedInk}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Size}" Padding="9,7" Foreground="{DynamicResource MutedInk}" />
+                                        <Button Grid.Column="3" Content="復元" Click="RestoreBackup_Click" Padding="10,5" Margin="4" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1" Cursor="Hand" />
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <Border Grid.Row="2" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Stroke}" BorderThickness="0,1,0,0">
+                <TextBlock Text="{Binding StatusMessage}" Foreground="{DynamicResource MutedInk}" FontSize="11" VerticalAlignment="Center" Margin="12,0" />
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
+
+

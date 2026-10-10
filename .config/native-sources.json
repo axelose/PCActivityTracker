@@ -1,0 +1,6 @@
+{
+  "sqlcipher": { "version": "4.19.0", "commit": "c4b275a47932888216bade83aff2bbc73df0ff85", "folder": "sqlcipher-c4b275a47932888216bade83aff2bbc73df0ff85", "archive": "sqlcipher-c4b275a.tar.gz", "url": "https://codeload.github.com/sqlcipher/sqlcipher/tar.gz/c4b275a47932888216bade83aff2bbc73df0ff85", "sha256": "e56d1f43cb18ec90d68b4b52d54c00b8b1c11605a27fbbba4249a1d6fc042a6f" },
+  "openssl": { "version": "3.5.8", "folder": "openssl-3.5.8", "archive": "openssl-3.5.8.tar.gz", "url": "https://github.com/openssl/openssl/releases/download/openssl-3.5.8/openssl-3.5.8.tar.gz", "sha256": "a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2" },
+  "llvmMingw": { "version": "20260908", "folder": "llvm-mingw-20260908-ucrt-x86_64", "archive": "llvm-mingw-20260908-ucrt-x86_64.zip", "url": "https://github.com/mstorsjo/llvm-mingw/releases/download/20260908/llvm-mingw-20260908-ucrt-x86_64.zip", "sha256": "1bcf74d06b724aeecaa6412ca85f5b26fb1da770e7cdcefa9263c9c5c3ad34b6" },
+  "perlModules": { "version": "5.42.3", "folder": "perl-5.42.3", "archive": "perl-5.42.3.tar.gz", "url": "https://www.cpan.org/src/5.0/perl-5.42.3.tar.gz", "sha256": "1137740985837b5cdf15f0cfab932279dcb4352f912fed6fc144e8b4f0823627" }
+}

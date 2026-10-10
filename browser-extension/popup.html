@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PC Activity Tracker</title>
+  <style>
+    :root { font-family: "Segoe UI", system-ui, sans-serif; color: #172033; }
+    body { width: 310px; margin: 0; padding: 18px; background: #f5f6fa; }
+    h1 { font-size: 17px; margin: 0 0 12px; }
+    .card { background: white; border: 1px solid #e3e7ef; border-radius: 10px; padding: 14px; }
+    #status { min-height: 38px; color: #596174; line-height: 1.5; }
+    label { display: flex; gap: 9px; align-items: center; margin-top: 14px; font-weight: 600; }
+    button { width: 100%; margin-top: 12px; padding: 9px; border: 1px solid #d7dbe5; border-radius: 7px; background: white; cursor: pointer; }
+    .note { color: #737b8d; font-size: 11px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>PC Activity Tracker</h1>
+  <div class="card">
+    <div id="status">接続状態を確認中…</div>
+    <label><input id="paused" type="checkbox"> サイト情報の送信を一時停止</label>
+    <button id="retry">今すぐ接続確認</button>
+    <button id="options">連携設定を開く</button>
+    <div class="note">一時停止中は現在サイトをデスクトップアプリから消去し、新しいサイト情報を送りません。</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

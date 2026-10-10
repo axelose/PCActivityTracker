@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PC Activity Tracker — Browser Bridge</title>
+  <style>
+    :root { font-family: "Segoe UI", system-ui, sans-serif; color: #172033; background: #f3f5f9; }
+    body { margin: 0; }
+    main { max-width: 680px; margin: 56px auto; padding: 0 24px; }
+    .card { background: white; border: 1px solid #e3e7ef; border-radius: 14px; padding: 28px; box-shadow: 0 8px 30px rgba(23,32,51,.06); }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    p { color: #6c7486; line-height: 1.65; }
+    label { display: block; font-weight: 600; margin: 24px 0 8px; }
+    input { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid #cfd5e1; border-radius: 8px; font: 13px Consolas, monospace; }
+    button { margin-top: 14px; border: 0; border-radius: 8px; background: #5b5ce2; color: white; font-weight: 600; padding: 11px 18px; cursor: pointer; }
+    #status { min-height: 24px; color: #267a61; font-weight: 600; }
+    .privacy { margin-top: 20px; padding: 14px; border-radius: 8px; background: #f7f8fb; font-size: 13px; color: #596174; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <h1>Browser Bridge</h1>
+      <p>最初に次の拡張IDをPC Activity Trackerの設定画面へ登録し、ブラウザを再起動してください。その後、デスクトップアプリに表示されるトークンを貼り付けます。通信にはChromium Native MessagingとWindowsのユーザー専用Pipeだけを使います。</p>
+      <p>拡張ID: <code id="extension-id"></code></p>
+      <label for="token">ローカル連携トークン</label>
+      <input id="token" type="password" autocomplete="off" spellcheck="false">
+      <button id="save">保存して接続確認</button>
+      <p id="status"></p>
+      <div class="privacy">シークレット / InPrivate では動作しません。通常タブでも、アクティブなタブのURLとタイトルだけを送り、履歴一覧やページ本文は読み取りません。<a href="privacy.html" target="_blank">データの取り扱い</a></div>
+    </div>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

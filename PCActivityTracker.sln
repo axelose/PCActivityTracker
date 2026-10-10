@@ -1,0 +1,31 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34330.188
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCActivityTracker", "src\PCActivityTracker\PCActivityTracker.csproj", "{74D5F655-FB39-49AB-8B86-C1E833690ACC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalAi.Runtime", "src\LocalAi.Runtime\LocalAi.Runtime.csproj", "{31D0B5CA-EF54-4DE2-A105-809A5B8C13C8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCActivityTracker.NativeHost", "src\PCActivityTracker.NativeHost\PCActivityTracker.NativeHost.csproj", "{983875F8-93E6-487E-8C46-25C9FB34BC03}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{74D5F655-FB39-49AB-8B86-C1E833690ACC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74D5F655-FB39-49AB-8B86-C1E833690ACC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74D5F655-FB39-49AB-8B86-C1E833690ACC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74D5F655-FB39-49AB-8B86-C1E833690ACC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31D0B5CA-EF54-4DE2-A105-809A5B8C13C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31D0B5CA-EF54-4DE2-A105-809A5B8C13C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31D0B5CA-EF54-4DE2-A105-809A5B8C13C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31D0B5CA-EF54-4DE2-A105-809A5B8C13C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{983875F8-93E6-487E-8C46-25C9FB34BC03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{983875F8-93E6-487E-8C46-25C9FB34BC03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{983875F8-93E6-487E-8C46-25C9FB34BC03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{983875F8-93E6-487E-8C46-25C9FB34BC03}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

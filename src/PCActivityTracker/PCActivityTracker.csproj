@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PCActivityTracker</RootNamespace>
+    <AssemblyName>PCActivityTracker</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>AnyCPU;x64</Platforms>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <ApplicationIcon>..\..\assets\PCActivityTracker.ico</ApplicationIcon>
+    <TrackerNativeRuntime Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</TrackerNativeRuntime>
+    <TrackerNativeRuntime Condition="'$(TrackerNativeRuntime)' == ''">$(NETCoreSdkRuntimeIdentifier)</TrackerNativeRuntime>
+    <TrackerNativeDirectory>$(MSBuildThisFileDirectory)..\..\artifacts\native\out\$(TrackerNativeRuntime)</TrackerNativeDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LocalAi.Runtime\LocalAi.Runtime.csproj" />
+    <Content Include="$(TrackerNativeDirectory)\pcactivity_sqlcipher.dll" Link="runtimes\$(TrackerNativeRuntime)\native\pcactivity_sqlcipher.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(TrackerNativeDirectory)\native-build.json" Link="runtimes\$(TrackerNativeRuntime)\native\native-build.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="RequireNativeDatabase" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(TrackerNativeDirectory)\pcactivity_sqlcipher.dll')" Text="Run scripts/build-native-sqlcipher.cmd -Runtime $(TrackerNativeRuntime) before building. See docs/NATIVE_DATABASE_UPGRADE.md." />
+  </Target>
+</Project>
