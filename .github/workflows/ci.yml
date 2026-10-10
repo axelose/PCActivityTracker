@@ -11,7 +11,8 @@ permissions:
 jobs:
   windows-self-test:
     runs-on: windows-2025
-    timeout-minutes: 20
+    # Cold builds compile OpenSSL/SQLCipher and validate both CPU architectures.
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
