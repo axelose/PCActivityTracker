@@ -19,13 +19,13 @@ public sealed class ActivityRepository
                     start_utc_ms, end_utc_ms, duration_seconds, activity_type,
                     app_name, process_name, window_title, executable_name,
                     browser_name, url, domain, page_title, creator_name, is_idle, category,
-                    created_utc_ms, updated_utc_ms)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17);
+                    created_utc_ms, updated_utc_ms, creator_id)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18);
                 """,
                 session.StartTime, session.EndTime, session.DurationSeconds, session.ActivityType.ToString(),
                 session.AppName, session.ProcessName, session.WindowTitle, session.ExecutableName,
                 session.BrowserName, session.Url, session.Domain, session.PageTitle, session.CreatorName,
-                session.IsIdle, session.Category, now, now);
+                session.IsIdle, session.Category, now, now, session.CreatorId);
             return;
         }
 
@@ -34,13 +34,13 @@ public sealed class ActivityRepository
                 end_utc_ms=?1, duration_seconds=?2, activity_type=?3,
                 app_name=?4, process_name=?5, window_title=?6, executable_name=?7,
                 browser_name=?8, url=?9, domain=?10, page_title=?11, creator_name=?12,
-                is_idle=?13, category=?14, updated_utc_ms=?15
+                is_idle=?13, category=?14, updated_utc_ms=?15, creator_id=?17
             WHERE id=?16;
             """,
             session.EndTime, session.DurationSeconds, session.ActivityType.ToString(),
             session.AppName, session.ProcessName, session.WindowTitle, session.ExecutableName,
             session.BrowserName, session.Url, session.Domain, session.PageTitle, session.CreatorName,
-            session.IsIdle, session.Category, now, session.Id);
+            session.IsIdle, session.Category, now, session.Id, session.CreatorId);
     }
 
     public IReadOnlyList<ActivitySession> GetRange(DateTimeOffset start, DateTimeOffset end)
@@ -48,7 +48,7 @@ public sealed class ActivityRepository
         var rows = _database.Query("""
             SELECT id, start_utc_ms, end_utc_ms, activity_type, app_name, process_name,
                    window_title, executable_name, browser_name, url, domain, page_title, creator_name,
-                   is_idle, category
+                   is_idle, category, creator_id
             FROM activity_sessions
             WHERE end_utc_ms > ?1 AND start_utc_ms < ?2
             ORDER BY start_utc_ms;
@@ -75,7 +75,26 @@ public sealed class ActivityRepository
         GetUsage(start, end, "domain", "domain IS NOT NULL AND trim(domain)<>''");
 
     public IReadOnlyList<ActivityUsageRow> GetCreatorUsage(DateTimeOffset start, DateTimeOffset end) =>
-        GetUsage(start, end, "creator_name", "creator_name IS NOT NULL AND trim(creator_name)<>''");
+        _database.Query("""
+            WITH clipped AS (
+                SELECT creator_name, creator_id, start_utc_ms, id,
+                    CASE WHEN creator_id IS NOT NULL AND creator_id<>'' THEN 'id:' || creator_id
+                         ELSE 'legacy:' || lower(COALESCE(domain,'')) || ':' || lower(creator_name) END AS creator_key,
+                    CAST(MAX(0, MIN(end_utc_ms, ?2) - MAX(start_utc_ms, ?1)) / 1000 AS INTEGER) AS seconds
+                FROM activity_sessions
+                WHERE end_utc_ms > ?1 AND start_utc_ms < ?2 AND is_idle=0
+                  AND creator_name IS NOT NULL AND trim(creator_name)<>''
+            ), ranked AS (
+                SELECT *, ROW_NUMBER() OVER (PARTITION BY creator_key ORDER BY start_utc_ms DESC, id DESC) AS recent
+                FROM clipped
+            )
+            SELECT MAX(CASE WHEN recent=1 THEN creator_name END) AS name,
+                MAX(CASE WHEN recent=1 THEN creator_id END) AS identity, SUM(seconds) AS seconds
+            FROM ranked GROUP BY creator_key
+            HAVING seconds > 0 ORDER BY seconds DESC, name COLLATE NOCASE;
+            """, start, end)
+        .Select(row => new ActivityUsageRow(row.String("name") ?? "Other", row.Int64("seconds"), row.String("identity")))
+        .ToList();
 
     public IReadOnlyList<ActivityUsageRow> GetCategoryUsage(DateTimeOffset start, DateTimeOffset end) =>
         GetUsage(start, end, "category", "is_idle=0");
@@ -235,6 +254,7 @@ public sealed class ActivityRepository
             Domain = row.String("domain"),
             PageTitle = row.String("page_title"),
             CreatorName = row.String("creator_name"),
+            CreatorId = row.String("creator_id"),
             IsIdle = row.Boolean("is_idle"),
             Category = row.String("category") ?? "Other"
         };
@@ -242,7 +262,7 @@ public sealed class ActivityRepository
 }
 
 public sealed record ActivityTotalsRow(long PcSeconds, long IdleSeconds);
-public sealed record ActivityUsageRow(string Name, long Seconds);
+public sealed record ActivityUsageRow(string Name, long Seconds, string? Identity = null);
 public sealed record DailyActivityRow(DateTimeOffset DayStart, long Seconds, long IdleSeconds);
 public sealed record HourlyActivityRow(DateTimeOffset HourStart, long Seconds);
 public sealed record ActivityIntervalRow(DateTimeOffset Start, DateTimeOffset End, bool IsIdle);

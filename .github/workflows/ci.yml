@@ -2,11 +2,16 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   windows-self-test:
@@ -37,12 +42,27 @@ jobs:
             node --check $_.FullName
             if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax check failed: $($_.Name)" }
           }
+      - name: Test browser bridge without external services
+        shell: pwsh
+        run: |
+          node --test tests/browser/bridge.test.cjs
+          if ($LASTEXITCODE -ne 0) { throw "Browser regression tests failed." }
+      - name: Cache pinned native source archives
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          # Cache downloads only; the build verifies every archive SHA-256.
+          # Never cache extracted toolchains, DLLs, logs, keys, or activity DBs.
+          path: artifacts/native/downloads
+          key: native-downloads-${{ runner.os }}-${{ hashFiles('.config/native-sources.json') }}
       - name: Restore locked dependencies
         shell: pwsh
         run: dotnet restore PCActivityTracker.sln --locked-mode
       - name: Build and run local-only self-test
         shell: cmd
         run: scripts\self-test.cmd
+      - name: Run modular core and WPF regression tests
+        shell: pwsh
+        run: .\scripts\test-regression.ps1
       - name: Verify native database compatibility
         shell: pwsh
         run: .\scripts\test-native-compatibility.ps1

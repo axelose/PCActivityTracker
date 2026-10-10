@@ -1,59 +1,56 @@
 function cleanCreatorName(value) {
-  if (!value) return null;
+  if (typeof value !== "string") return null;
   const normalized = value.replace(/\s+/g, " ").trim();
   return normalized ? normalized.slice(0, 200) : null;
 }
 
-function creatorFromChannelUrl() {
-  const parts = location.pathname.split("/").filter(Boolean);
-  const decodePart = value => {
-    try { return decodeURIComponent(value); } catch { return value; }
-  };
-  if (parts[0]?.startsWith("@")) return cleanCreatorName(decodePart(parts[0]));
-  if (["channel", "c", "user"].includes(parts[0]) && parts[1])
-    return cleanCreatorName(decodePart(parts[1]));
-  return null;
-}
-
 function findYouTubeCreator() {
-  const selectors = [
+  const url = new URL(location.href);
+  const fallback = CreatorIdentity.fromUrl(location.href);
+  const shorts = url.pathname.startsWith("/shorts/");
+  const watch = url.pathname === "/watch";
+  if (!shorts && !watch) return fallback;
+
+  const watchPage = document.querySelector("ytd-watch-flexy[video-id]");
+  if (watch && watchPage && watchPage.getAttribute("video-id") !== url.searchParams.get("v")) return null;
+  const selectors = shorts ? [
+    "ytd-reel-video-renderer[is-active] #channel-name a",
+    "ytd-reel-video-renderer[is-active] ytd-channel-name a"
+  ] : [
     "ytd-video-owner-renderer #channel-name a",
     "ytd-video-owner-renderer ytd-channel-name a",
-    "#owner #channel-name a",
-    "ytd-reel-player-overlay-renderer #channel-name a",
-    "ytd-reel-player-overlay-renderer ytd-channel-name a",
-    "yt-page-header-renderer h1",
-    "ytd-c4-tabbed-header-renderer #channel-name"
+    "#owner #channel-name a"
   ];
   for (const selector of selectors) {
     const element = document.querySelector(selector);
     const name = cleanCreatorName(element?.textContent || element?.getAttribute("aria-label"));
-    if (name) return name;
+    let identity = null;
+    try {
+      if (element?.getAttribute("href"))
+        identity = CreatorIdentity.fromUrl(new URL(element.getAttribute("href"), location.href).href);
+    } catch { /* Unexpected DOM link is not a creator identifier. */ }
+    if (name && identity) return { ...identity, creatorName: name };
   }
-
-  return cleanCreatorName(document.querySelector('meta[itemprop="author"]')?.content) || creatorFromChannelUrl();
+  return fallback;
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type !== "get-creator-info") return false;
-  sendResponse({ creatorName: findYouTubeCreator() });
+  sendResponse({ ...findYouTubeCreator(), pageUrl: location.href });
   return false;
 });
 
 let publishTimer;
 function notifyCreatorChanged() {
   clearTimeout(publishTimer);
+  if (document.hidden) return;
   publishTimer = setTimeout(() => {
-    chrome.runtime.sendMessage({
-      type: "creator-info-changed",
-      creatorName: findYouTubeCreator(),
-      url: location.href
-    }).catch(() => { /* The extension may be reloading. */ });
+    // Worker re-reads the active tab; no queued page URL or name is retained.
+    chrome.runtime.sendMessage({ type: "creator-info-changed" })
+      .catch(() => { /* The extension may be reloading. */ });
   }, 500);
 }
 
 document.addEventListener("yt-navigate-finish", notifyCreatorChanged);
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) notifyCreatorChanged();
-});
+document.addEventListener("visibilitychange", notifyCreatorChanged);
 notifyCreatorChanged();

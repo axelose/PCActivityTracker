@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PC Activity Tracker Browser Bridge",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "description": "Sends the active tab and supported public creator name only to the local PC Activity Tracker app.",
   "icons": {
     "16": "icons/icon16.png",
@@ -16,7 +16,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"],
-      "js": ["creator-content.js"],
+      "js": ["creator-identity.js", "creator-content.js"],
       "run_at": "document_idle"
     }
   ],

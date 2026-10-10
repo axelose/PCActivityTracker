@@ -2,7 +2,8 @@ namespace PCActivityTracker.Domain;
 
 public sealed class AppSettings
 {
-    public const int CurrentPrivacyConsentVersion = 1;
+    // v2 explicitly includes optional public creator identifiers.
+    public const int CurrentPrivacyConsentVersion = 2;
     public const string DefaultGameProcessNames =
         "VALORANT-Win64-Shipping,League of Legends,LeagueClient,EscapeFromTarkov,cs2,Overwatch,FortniteClient-Win64-Shipping,r5apex,RainbowSix,RocketLeague,eldenring,ffxiv_dx11,GTA5,RDR2";
 

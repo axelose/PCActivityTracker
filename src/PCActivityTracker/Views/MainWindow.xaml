@@ -558,13 +558,14 @@
                                     <DataTemplate>
                                         <Grid Margin="0,5"><Grid.ColumnDefinitions><ColumnDefinition Width="28" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding Rank}" Foreground="{DynamicResource MutedInk}" />
-                                            <StackPanel Grid.Column="1"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><Border Height="5" Width="{Binding BarWidth}" MaxWidth="240" Background="{DynamicResource CreatorAccent}" CornerRadius="3" HorizontalAlignment="Left" Margin="0,6,8,0" /></StackPanel>
+                                            <StackPanel Grid.Column="1"><Button Style="{DynamicResource SecondaryButton}" Content="{Binding Name}" ToolTip="{Binding Identity}" HorizontalAlignment="Left"
+                                                Command="{Binding DataContext.OpenCreatorDrilldownCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="4,2" /><Border Height="5" Width="{Binding BarWidth}" MaxWidth="240" Background="{DynamicResource CreatorAccent}" CornerRadius="3" HorizontalAlignment="Left" Margin="0,6,8,0" /></StackPanel>
                                             <TextBlock Grid.Column="2" Text="{Binding Duration}" Foreground="{DynamicResource MutedInk}" Margin="10,0,0,0" />
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <TextBlock Text="配信者・チャンネル情報はまだありません。拡張機能を再読み込み後、YouTubeのタブも再読み込みしてください。"
+                            <TextBlock Text="この期間に取得済みの配信者・チャンネル情報はありません。未取得の時間はランキングに含まれません。連携状態は設定で確認できます。拡張更新後はYouTubeタブも再読み込みしてください。"
                                        Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,12,0,4"
                                        Visibility="{Binding HasNoCreators, Converter={StaticResource BoolToVisibility}}" />
                         </StackPanel>
@@ -1102,7 +1103,7 @@
                             <CheckBox Content="完全なURLを記録する（OFF時もドメインは記録）" IsChecked="{Binding RecordUrls}" Margin="0,6" />
                             <CheckBox Content="Webページタイトルを記録する" IsChecked="{Binding RecordPageTitles}" Margin="0,6" />
                             <CheckBox Content="ウィンドウタイトルを記録する（文書名やメール件名を含む場合があります）" IsChecked="{Binding RecordWindowTitles}" Margin="0,6" />
-                            <CheckBox Content="YouTubeのチャンネル名・Twitchの配信者名を記録する" IsChecked="{Binding RecordCreatorNames}" Margin="0,6" />
+                            <CheckBox Content="チャンネル・配信者の名前と公開識別子を記録する" IsChecked="{Binding RecordCreatorNames}" Margin="0,6" />
                             <Separator Margin="0,12" />
                             <CheckBox Content="Windowsへのサインイン時に自動起動する" IsChecked="{Binding StartWithWindows}" Margin="0,6" />
                             <CheckBox Content="起動時は画面を開かず通知領域に常駐する" IsChecked="{Binding StartMinimized}" Margin="0,6" />
@@ -1189,7 +1190,7 @@
                                 <TextBlock Text="接続状態" Foreground="{DynamicResource MutedInk}" /><TextBlock Grid.Column="1" Text="{Binding BrowserConnectionState}" FontWeight="SemiBold" />
                                 <TextBlock Grid.Row="1" Text="安全なローカル待受" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding BridgeStatus}" Margin="0,5,0,0" />
                                 <TextBlock Grid.Row="2" Text="最終受信" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding BrowserLastReceived}" Margin="0,5,0,0" />
-                                <TextBlock Grid.Row="3" Text="最後の情報" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding BrowserLastActivity}" TextTrimming="CharacterEllipsis" Margin="0,5,0,0" />
+                                <TextBlock Grid.Row="3" Text="最後の情報" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><StackPanel Grid.Row="3" Grid.Column="1" Margin="0,5,0,0"><TextBlock Text="{Binding BrowserLastActivity}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding BrowserCreatorStatus}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" /></StackPanel>
                                 <TextBlock Grid.Row="4" Text="拡張バージョン" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Margin="0,5,0,0"><TextBlock Text="{Binding BrowserExtensionVersion}" /><TextBlock Text="  —  " Foreground="{DynamicResource MutedInk}" /><TextBlock Text="{Binding BrowserExtensionStatus}" /></StackPanel>
                                 <TextBlock Grid.Row="5" Text="通信カウンター" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding BrowserRequestCounts}" Margin="0,5,0,0" TextWrapping="Wrap" />
                                 <TextBlock Grid.Row="6" Text="ペアリング" Foreground="{DynamicResource MutedInk}" Margin="0,5,0,0" /><TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding BrowserPairingStatus}" Margin="0,5,0,0" TextWrapping="Wrap" />

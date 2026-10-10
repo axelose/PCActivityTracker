@@ -15,7 +15,12 @@
 ```powershell
 .\scripts\verify-public-source.cmd
 .\scripts\self-test.cmd
+.\scripts\test-regression.cmd
 ```
+
+独立回帰テストにはNode.js（`node --test`対応版）も必要です。全テストは人工データだけを使います。特定のC#スイートだけなら `scripts/test-regression.cmd -Suites aggregation` のように選択できます。ブラウザ拡張のテストは毎回実行します。WPFテストは画面を表示せず、アプリ起動・自動起動登録・実ブラウザ操作・Ollama接続を行いません。
+
+結果は `artifacts/verification/regression-report.json` に出力されます。commit、未コミット状態、ソース指紋とテスト結果をセットで確認し、過去の成功ログを別バージョンの合格証拠として使わないでください。
 
 依存関係を変更した場合は `dotnet restore PCActivityTracker.sln --force-evaluate` で `packages.lock.json` を更新し、更新理由と脆弱性監査結果をPull Requestへ記載してください。GitHub Actionsはタグではなく、レビュー済みリリースの完全な40文字commit SHAへ固定します。
 

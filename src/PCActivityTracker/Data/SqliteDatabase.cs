@@ -11,7 +11,7 @@ namespace PCActivityTracker.Data;
 /// </summary>
 public sealed class SqliteDatabase : IDisposable
 {
-    public const int CurrentSchemaVersion = 5;
+    public const int CurrentSchemaVersion = 6;
     private readonly string _path;
     private readonly bool _createMigrationBackup;
     private readonly string? _keyHex;
@@ -62,6 +62,7 @@ public sealed class SqliteDatabase : IDisposable
                 domain TEXT NULL,
                 page_title TEXT NULL,
                 creator_name TEXT NULL,
+                creator_id TEXT NULL,
                 is_idle INTEGER NOT NULL DEFAULT 0,
                 category TEXT NOT NULL DEFAULT 'Other',
                 created_utc_ms INTEGER NOT NULL,
@@ -152,6 +153,8 @@ public sealed class SqliteDatabase : IDisposable
                 var columns = Connection.Query("PRAGMA table_info(activity_sessions);", Array.Empty<object?>());
                 if (!columns.Any(row => string.Equals(row.String("name"), "creator_name", StringComparison.OrdinalIgnoreCase)))
                     Connection.ExecuteScript("ALTER TABLE activity_sessions ADD COLUMN creator_name TEXT NULL;");
+                if (!columns.Any(row => string.Equals(row.String("name"), "creator_id", StringComparison.OrdinalIgnoreCase)))
+                    Connection.ExecuteScript("ALTER TABLE activity_sessions ADD COLUMN creator_id TEXT NULL;");
 
                 var categoryColumns = Connection.Query("PRAGMA table_info(category_rules);", Array.Empty<object?>());
                 if (!categoryColumns.Any(row => string.Equals(row.String("name"), "match_mode", StringComparison.OrdinalIgnoreCase)))
@@ -164,6 +167,8 @@ public sealed class SqliteDatabase : IDisposable
                 Connection.ExecuteScript($"""
                     CREATE INDEX IF NOT EXISTS ix_activity_sessions_creator
                         ON activity_sessions(creator_name, start_utc_ms);
+                    CREATE INDEX IF NOT EXISTS ix_activity_sessions_creator_id
+                        ON activity_sessions(creator_id, start_utc_ms);
                     PRAGMA user_version={CurrentSchemaVersion};
                     COMMIT;
                     """);

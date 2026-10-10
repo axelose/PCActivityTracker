@@ -11,6 +11,8 @@ public static class PerformanceModeService
     private const int ProcessPowerThrottling = 4;
     private const uint CurrentVersion = 1;
     private const uint ExecutionSpeed = 0x1;
+    private static long _lastCollectionTick = long.MinValue;
+    public static MemoryCleanupMeasurement? LastCleanup { get; private set; }
 
     public static void ApplyLowImpactMode()
     {
@@ -42,19 +44,25 @@ public static class PerformanceModeService
     }
 
     /// <summary>
-    /// Releases the dashboard visual tree after the window is closed, then asks Windows
-    /// to remove unused pages from this process' working set. The recorder keeps running.
+    /// Requests at most one non-blocking, optimized collection after a sizeable UI
+    /// was released. Never force finalization or evict the recorder's resident pages.
     /// </summary>
     public static void ReleaseUnusedUiMemory()
     {
         try
         {
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: false);
-            GC.WaitForPendingFinalizers();
-            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: false);
-
+            var managedBytes = GC.GetTotalMemory(forceFullCollection: false);
+            var now = Environment.TickCount64;
+            var requested = MemoryCleanupPolicy.ShouldCollect(managedBytes, now, _lastCollectionTick);
+            var elapsed = Stopwatch.StartNew();
+            if (requested)
+            {
+                _lastCollectionTick = now;
+                GC.Collect(GC.MaxGeneration, GCCollectionMode.Optimized, blocking: false, compacting: false);
+            }
             using var current = Process.GetCurrentProcess();
-            _ = EmptyWorkingSet(current.Handle);
+            LastCleanup = new MemoryCleanupMeasurement(managedBytes, current.PrivateMemorySize64,
+                current.WorkingSet64, elapsed.Elapsed.TotalMilliseconds, requested);
         }
         catch
         {
@@ -78,7 +86,7 @@ public static class PerformanceModeService
     private static extern bool SetProcessInformation(IntPtr process, int informationClass,
         ref ProcessPowerThrottlingState information, uint informationSize);
 
-    [DllImport("psapi.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool EmptyWorkingSet(IntPtr process);
 }
+
+public sealed record MemoryCleanupMeasurement(long ManagedBytes, long PrivateBytes,
+    long WorkingSetBytes, double RequestMilliseconds, bool CollectionRequested);

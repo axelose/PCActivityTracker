@@ -57,6 +57,7 @@ foreach ($relativePath in @(
     'src\LocalAi.Runtime\packages.lock.json',
     'src\PCActivityTracker\packages.lock.json',
     'src\PCActivityTracker.NativeHost\packages.lock.json'
+    'tests\CoreRegression\packages.lock.json'
 )) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $relativePath) -PathType Leaf)) {
         Add-Failure "NuGet lock file is missing: $relativePath (run dotnet restore --force-evaluate)"

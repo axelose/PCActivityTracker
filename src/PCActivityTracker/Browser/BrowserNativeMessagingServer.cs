@@ -19,7 +19,7 @@ namespace PCActivityTracker.Browser;
 public sealed class BrowserNativeMessagingServer : IAsyncDisposable
 {
     public const string PipeName = "PCActivityTracker.Browser.Native.v1";
-    public const string ExpectedExtensionVersion = "3.2.3";
+    public const string ExpectedExtensionVersion = "3.2.4";
     private const int MaximumMessageBytes = 64 * 1024;
     private const int MaximumConcurrentClients = 4;
     private readonly BrowserStateStore _store;
@@ -189,7 +189,8 @@ public sealed class BrowserNativeMessagingServer : IAsyncDisposable
             var creator = NormalizeText(payload.CreatorName, 200);
             var domain = uri.IdnHost.ToLowerInvariant();
             _store.Update(new BrowserActivity(browser, sanitizedUrl, domain,
-                NormalizeText(payload.Title, 500) ?? string.Empty, creator, observedAt, false));
+                NormalizeText(payload.Title, 500) ?? string.Empty, creator, observedAt, false,
+                creator is null ? null : CreatorIdentityService.Normalize(payload.CreatorId, domain)));
             Accept(receivedAt, browser, domain, creator, payload.ExtensionVersion, "アクティブタブを受信");
             return JsonSerializer.SerializeToUtf8Bytes(new { ok = true });
         }
@@ -299,5 +300,6 @@ public sealed class BrowserNativeMessagingServer : IAsyncDisposable
     }
 
     private sealed record ActiveTabPayload(string Browser, string? Url, string? Title, bool Incognito,
-        bool Active = true, string? CreatorName = null, long? ObservedAtUnixMs = null, string? ExtensionVersion = null);
+        bool Active = true, string? CreatorName = null, long? ObservedAtUnixMs = null, string? ExtensionVersion = null,
+        string? CreatorId = null);
 }

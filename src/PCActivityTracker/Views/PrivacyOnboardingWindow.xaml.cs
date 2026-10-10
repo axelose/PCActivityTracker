@@ -12,6 +12,16 @@ public partial class PrivacyOnboardingWindow : Window
     {
         InitializeComponent();
         _existing = existing;
+        if (existing.PrivacyConsentVersion > 0)
+        {
+            RecordingCheck.IsChecked = existing.RecordingEnabled;
+            UrlsCheck.IsChecked = existing.RecordUrls;
+            PageTitlesCheck.IsChecked = existing.RecordPageTitles;
+            WindowTitlesCheck.IsChecked = existing.RecordWindowTitles;
+            CreatorsCheck.IsChecked = false; // A new field requires a new opt-in.
+            ConsentUpdateNotice.Text = "公開チャンネルID・ハンドル等の任意保存を追加しました。配信者情報の記録を再選択してください。既存履歴は削除しません。";
+            ConsentUpdateNotice.Visibility = Visibility.Visible;
+        }
         RetentionText.Text = Math.Clamp(existing.RetentionDays, 1, 3650).ToString();
         ThemeService.ApplyWindowTheme(this, ThemeService.Apply(existing.ThemeMode));
     }
@@ -31,7 +41,7 @@ public partial class PrivacyOnboardingWindow : Window
 
     private void ContinueWithoutRecording_Click(object sender, RoutedEventArgs e)
     {
-        Result = BuildResult(false, 90);
+        Result = BuildResult(false, Math.Clamp(_existing.RetentionDays, 1, 3650));
         DialogResult = true;
     }
 
@@ -45,8 +55,8 @@ public partial class PrivacyOnboardingWindow : Window
         RecordCreatorNames = recording && CreatorsCheck.IsChecked == true,
         IdleThresholdMinutes = _existing.IdleThresholdMinutes,
         RetentionDays = retention,
-        StartWithWindows = false,
-        StartMinimized = false,
+        StartWithWindows = _existing.StartWithWindows,
+        StartMinimized = _existing.StartMinimized,
         AutomaticBackupsEnabled = _existing.AutomaticBackupsEnabled,
         OllamaEndpoint = _existing.OllamaEndpoint,
         OllamaModel = _existing.OllamaModel,

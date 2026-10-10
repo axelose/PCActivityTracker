@@ -16,6 +16,7 @@ public sealed class ActivitySession
     public string? Domain { get; set; }
     public string? PageTitle { get; set; }
     public string? CreatorName { get; set; }
+    public string? CreatorId { get; set; }
     public bool IsIdle { get; set; }
     public string Category { get; set; } = "Other";
 
@@ -30,6 +31,7 @@ public sealed class ActivitySession
         string.Equals(Domain, other.Domain, StringComparison.Ordinal) &&
         string.Equals(PageTitle, other.PageTitle, StringComparison.Ordinal) &&
         string.Equals(CreatorName, other.CreatorName, StringComparison.Ordinal) &&
+        string.Equals(CreatorId, other.CreatorId, StringComparison.Ordinal) &&
         string.Equals(Category, other.Category, StringComparison.Ordinal);
 }
 

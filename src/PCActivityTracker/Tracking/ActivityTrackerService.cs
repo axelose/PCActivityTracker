@@ -192,6 +192,8 @@ public sealed class ActivityTrackerService : IAsyncDisposable
                 Domain = browser.Domain,
                 PageTitle = settings.RecordPageTitles ? browser.PageTitle : null,
                 CreatorName = settings.RecordCreatorNames ? NormalizeCreatorName(browser.CreatorName) : null,
+                CreatorId = settings.RecordCreatorNames && !string.IsNullOrWhiteSpace(browser.CreatorName)
+                    ? CreatorIdentityService.Normalize(browser.CreatorId, browser.Domain) : null,
                 // Persist the deterministic built-in category. User rules are applied
                 // at query time, so deleting a rule also restores historical results.
                 Category = ActivityCategorizer.Categorize(snapshot.AppName, browser.Domain, false, browser.CreatorName)

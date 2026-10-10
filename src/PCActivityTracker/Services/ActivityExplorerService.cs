@@ -148,14 +148,14 @@ public sealed class ActivityExplorerService
         if (query.SwitchesOnly && !item.IsSwitch) return false;
         if (!Contains(item.Session.AppName, query.App)) return false;
         if (!Contains(item.Session.Domain, query.Domain)) return false;
-        if (!Contains(item.Session.CreatorName, query.Creator)) return false;
+        if (!Contains(item.Session.CreatorName, query.Creator) && !Contains(item.Session.CreatorId, query.Creator)) return false;
         if (!Contains(item.Category, query.Category)) return false;
         if (!Contains(item.Annotation?.ProjectName, query.Project)) return false;
         if (string.IsNullOrWhiteSpace(query.Text)) return true;
         var values = new[]
         {
             item.Session.AppName, item.Session.ProcessName, item.Session.WindowTitle, item.Session.Domain,
-            item.Session.PageTitle, item.Session.Url, item.Session.CreatorName, item.Category,
+            item.Session.PageTitle, item.Session.Url, item.Session.CreatorName, item.Session.CreatorId, item.Category,
             item.Annotation?.ProjectName, item.Annotation?.TaskName, item.Annotation?.Note
         };
         return values.Any(value => Contains(value, query.Text));

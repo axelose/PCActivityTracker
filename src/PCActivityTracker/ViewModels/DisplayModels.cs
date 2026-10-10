@@ -1,7 +1,10 @@
 namespace PCActivityTracker.ViewModels;
 
 public sealed record TimelineItem(string TimeRange, string Title, string Subtitle, string Duration, bool IsIdle, bool IsWebsite);
-public sealed record RankingItem(int Rank, string Name, string Duration, double BarWidth);
+public sealed record RankingItem(int Rank, string Name, string Duration, double BarWidth, string? Identity = null)
+{
+    public string FilterValue => Identity ?? Name;
+}
 public sealed record DailyItem(string Day, string Duration, string IdleDuration, double BarWidth);
 public sealed record ExclusionItem(long Id, string Type, string Value);
 public sealed record HeatmapDayItem(string Day, IReadOnlyList<HeatmapCellItem> Hours);

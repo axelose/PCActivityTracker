@@ -1,9 +1,9 @@
 <Project>
   <PropertyGroup>
-    <Version>3.2.5</Version>
-    <AssemblyVersion>3.2.5.0</AssemblyVersion>
-    <FileVersion>3.2.5.0</FileVersion>
-    <InformationalVersion>3.2.5</InformationalVersion>
+    <Version>3.2.6</Version>
+    <AssemblyVersion>3.2.6.0</AssemblyVersion>
+    <FileVersion>3.2.6.0</FileVersion>
+    <InformationalVersion>3.2.6</InformationalVersion>
     <Company>PC Activity Tracker Project</Company>
     <Product>PC Activity Tracker</Product>
     <Description>Privacy-first local activity history for Windows 11.</Description>

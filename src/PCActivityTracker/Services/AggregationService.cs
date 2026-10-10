@@ -24,7 +24,7 @@ public sealed class AggregationService
         var totals = _repository.GetTotals(start, end);
         var apps = _repository.GetAppUsage(start, end).Select(item => new UsageTotal(item.Name, item.Seconds)).ToList();
         var sites = _repository.GetSiteUsage(start, end).Select(item => new UsageTotal(item.Name, item.Seconds)).ToList();
-        var creators = _repository.GetCreatorUsage(start, end).Select(item => new UsageTotal(item.Name, item.Seconds)).ToList();
+        var creators = _repository.GetCreatorUsage(start, end).Select(item => new UsageTotal(item.Name, item.Seconds, item.Identity)).ToList();
         var categoryRules = _settings?.CategoryRules;
         var annotations = _annotations?.GetRange(start, end) ?? Array.Empty<ActivityAnnotation>();
         var useLiveCategories = (categoryRules?.Count ?? 0) > 0 || annotations.Any(item => !string.IsNullOrWhiteSpace(item.CategoryOverride));
@@ -494,7 +494,7 @@ public sealed class AggregationService
     }
 }
 
-public sealed record UsageTotal(string Name, long Seconds);
+public sealed record UsageTotal(string Name, long Seconds, string? Identity = null);
 public sealed record DailyTotal(DateTime Date, long Seconds, long IdleSeconds);
 public sealed record TimelineEntry(DateTime Start, DateTime End, string Title, string Subtitle, long Seconds, bool IsIdle, bool IsWebsite);
 public sealed record HourlyTotal(DateTime HourStart, long Seconds);

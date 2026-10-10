@@ -58,7 +58,28 @@ foreach ($entry in $pins.PSObject.Properties) {
     $archive = Join-Path $native ('downloads\' + $pin.archive)
     if (-not (Test-Path -LiteralPath $archive)) {
         Write-Host "Downloading pinned build dependency: $($entry.Name) $($pin.version)"
-        Invoke-WebRequest -UseBasicParsing -Uri $pin.url -OutFile $archive
+        $partial = $archive + '.' + [Guid]::NewGuid().ToString('N') + '.partial'
+        $savedProgress = $ProgressPreference
+        try {
+            $ProgressPreference = 'SilentlyContinue'
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+                try {
+                    Invoke-WebRequest -UseBasicParsing -Uri $pin.url -OutFile $partial -TimeoutSec 300
+                    if ((Get-NativeHash $partial) -ne $pin.sha256) { throw "SHA-256 mismatch: $($pin.archive)" }
+                    Move-Item -LiteralPath $partial -Destination $archive
+                    break
+                } catch {
+                    if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial }
+                    # A hash mismatch is an integrity failure, not a transient network error.
+                    if ($attempt -eq 3 -or $_.Exception.Message -like 'SHA-256 mismatch:*') { throw }
+                    Write-Warning "Download attempt $attempt failed; retrying pinned archive."
+                    Start-Sleep -Seconds $attempt
+                }
+            }
+        } finally {
+            $ProgressPreference = $savedProgress
+            if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial }
+        }
     }
     if ((Get-NativeHash $archive) -ne $pin.sha256) { throw "SHA-256 mismatch: $($pin.archive)" }
     $parent = if ($entry.Name -eq 'llvmMingw') { Join-Path $native 'tools' } else { Join-Path $native 'sources' }

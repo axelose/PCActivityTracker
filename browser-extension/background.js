@@ -1,7 +1,12 @@
+importScripts("creator-identity.js");
 const NATIVE_HOST = "jp.local.pcactivitytracker.browser";
 let publishGeneration = 0;
 let nativePort = null;
 let nativeRequestQueue = Promise.resolve();
+const NATIVE_RESPONSE_TIMEOUT_MS = 5000;
+const CREATOR_RESPONSE_TIMEOUT_MS = 1000;
+let publishPending = false;
+let publishWork = null;
 
 async function restrictLocalStorageAccess() {
   try {
@@ -53,23 +58,32 @@ function connectNativeHost() {
 function sendNative(message) {
   const execute = () => new Promise((resolve, reject) => {
     const port = connectNativeHost();
-    const onMessage = response => {
+    let finished = false;
+    let timer;
+    const finish = (error, response) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
       port.onMessage.removeListener(onMessage);
       port.onDisconnect.removeListener(onDisconnect);
-      resolve(response);
+      if (error) {
+        // Discard this port: a late response must never answer the next request.
+        if (nativePort === port) nativePort = null;
+        try { port.disconnect(); } catch { /* Already disconnected. */ }
+        reject(error);
+      } else resolve(response);
+    };
+    const onMessage = response => {
+      finish(null, response);
     };
     const onDisconnect = () => {
-      port.onMessage.removeListener(onMessage);
-      reject(new Error(chrome.runtime.lastError?.message || "Native Messaging host disconnected."));
+      finish(new Error(chrome.runtime.lastError?.message || "Native Messaging host disconnected."));
     };
     port.onMessage.addListener(onMessage);
     port.onDisconnect.addListener(onDisconnect);
+    timer = setTimeout(() => finish(new Error("Native Messaging response timed out.")), NATIVE_RESPONSE_TIMEOUT_MS);
     try { port.postMessage(message); }
-    catch (error) {
-      port.onMessage.removeListener(onMessage);
-      port.onDisconnect.removeListener(onDisconnect);
-      reject(error);
-    }
+    catch (error) { finish(error); }
   });
   const request = nativeRequestQueue.then(execute, execute);
   nativeRequestQueue = request.catch(() => undefined);
@@ -82,61 +96,49 @@ function browserName() {
   return /Edge/i.test(brands) || navigator.userAgent.includes("Edg/") ? "Edge" : "Chrome";
 }
 
-function decodePathPart(value) {
-  try { return decodeURIComponent(value); } catch { return value; }
-}
-
-function creatorFromTwitchUrl(rawUrl) {
-  try {
-    const url = new URL(rawUrl);
-    if (!/(^|\.)twitch\.tv$/i.test(url.hostname)) return null;
-    const first = url.pathname.split("/").filter(Boolean)[0];
-    if (!first) return null;
-    const reserved = new Set([
-      "bits", "browse", "communities", "directory", "downloads", "drops", "following",
-      "friends", "inventory", "jobs", "login", "messages", "moderator", "p", "prime",
-      "products", "search", "settings", "signup", "store", "subscriptions", "team",
-      "turbo", "u", "videos", "wallet"
-    ]);
-    return reserved.has(first.toLowerCase()) ? null : decodePathPart(first).slice(0, 200);
-  } catch {
-    return null;
-  }
-}
-
-function creatorFromYouTubeUrl(rawUrl) {
-  try {
-    const url = new URL(rawUrl);
-    if (!/(^|\.)youtube\.com$/i.test(url.hostname)) return null;
-    const parts = url.pathname.split("/").filter(Boolean).map(decodePathPart);
-    if (parts[0]?.startsWith("@")) return parts[0].slice(0, 200);
-    if (["channel", "c", "user"].includes(parts[0]) && parts[1]) return parts[1].slice(0, 200);
-  } catch { /* The URL is validated separately before publishing. */ }
-  return null;
-}
 
 async function creatorNameForTab(tab) {
   if (!tab?.url) return null;
-  const twitchCreator = creatorFromTwitchUrl(tab.url);
-  if (twitchCreator) return twitchCreator;
-
-  const youtubeFallback = creatorFromYouTubeUrl(tab.url);
-  if (!/(^|\.)youtube\.com$/i.test(new URL(tab.url).hostname)) return youtubeFallback;
+  const fallback = CreatorIdentity.fromUrl(tab.url);
+  if (!["youtube.com", "www.youtube.com", "m.youtube.com"].includes(new URL(tab.url).hostname.toLowerCase())) return fallback;
   try {
-    const response = await chrome.tabs.sendMessage(tab.id, { type: "get-creator-info" });
-    return response?.creatorName || youtubeFallback;
+    const response = await withTimeout(chrome.tabs.sendMessage(tab.id, { type: "get-creator-info" }), CREATOR_RESPONSE_TIMEOUT_MS);
+    return response?.pageUrl === tab.url && response?.creatorName ? response : fallback;
   } catch {
     // An already-open tab may not have the content script until it is reloaded.
-    return youtubeFallback;
+    return fallback;
   }
 }
 
-async function publishActiveTab() {
-  const generation = ++publishGeneration;
+function withTimeout(work, milliseconds) {
+  let timer;
+  return Promise.race([work, new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("Content script response timed out.")), milliseconds);
+  })]).finally(() => clearTimeout(timer));
+}
+
+function publishActiveTab() {
+  ++publishGeneration;
+  publishPending = true;
+  // Only one sender and one pending refresh. No URLs/titles are queued or persisted.
+  if (!publishWork) publishWork = (async () => {
+    let result;
+    do {
+      publishPending = false;
+      try { result = await publishLatestTab(publishGeneration); }
+      catch { result = { ok: false, message: "ブラウザ情報を取得できません。" }; }
+    } while (publishPending);
+    return result;
+  })().finally(() => { publishWork = null; });
+  return publishWork;
+}
+
+async function publishLatestTab(generation) {
   const { bridgeToken = "", bridgePaused = false } = await chrome.storage.local.get(["bridgeToken", "bridgePaused"]);
   if (!bridgeToken) return { ok: false, message: "連携トークンが未設定です。" };
 
   if (!await authenticateDesktop(bridgeToken)) {
+    if (generation !== publishGeneration) return { ok: false, message: "最新状態を確認中です。" };
     const result = { ok: false, message: "デスクトップアプリを安全に認証できません。" };
     await chrome.storage.local.set({ bridgeStatus: result.message, bridgeStatusAt: Date.now() });
     await chrome.action.setBadgeText({ text: "!" });
@@ -146,9 +148,19 @@ async function publishActiveTab() {
 
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   const isWebTab = Boolean(!bridgePaused && tab && !tab.incognito && tab.url && /^https?:\/\//i.test(tab.url));
-  const creatorName = isWebTab ? await creatorNameForTab(tab) : null;
+  const creator = isWebTab ? await creatorNameForTab(tab) : null;
   if (generation !== publishGeneration)
     return { ok: true, message: "より新しいタブ情報を送信中です。" };
+
+  // Revalidate after asynchronous DOM lookup, including pause/token revocation.
+  const [currentTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  const currentSettings = await chrome.storage.local.get(["bridgeToken", "bridgePaused"]);
+  if (generation !== publishGeneration || currentTab?.id !== tab?.id || currentTab?.url !== tab?.url ||
+      Boolean(currentTab?.incognito) !== Boolean(tab?.incognito) ||
+      (currentSettings.bridgeToken || "") !== bridgeToken || Boolean(currentSettings.bridgePaused) !== Boolean(bridgePaused)) {
+    publishPending = true;
+    return { ok: true, message: "最新のタブ状態を確認中です。" };
+  }
 
   try {
     const response = await sendNative({
@@ -158,7 +170,8 @@ async function publishActiveTab() {
         browser: browserName(),
         url: isWebTab ? tab.url : null,
         title: isWebTab ? (tab.title || "") : "",
-        creatorName,
+        creatorName: creator?.creatorName || null,
+        creatorId: creator?.creatorId || null,
         extensionVersion: chrome.runtime.getManifest().version,
         observedAtUnixMs: Date.now(),
         incognito: Boolean(tab?.incognito),

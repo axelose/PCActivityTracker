@@ -7,7 +7,8 @@ public sealed record BrowserActivity(
     string PageTitle,
     string? CreatorName,
     DateTimeOffset ObservedAt,
-    bool Incognito);
+    bool Incognito,
+    string? CreatorId = null);
 
 public sealed record ForegroundSnapshot(
     DateTimeOffset ObservedAt,
