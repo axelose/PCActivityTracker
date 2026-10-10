@@ -87,9 +87,11 @@ public sealed partial class MainViewModel
         _aiGenerationStopped = stopped;
         _gameCancellationProcess = null;
         IsAiGenerating = true;
+        var retryPolicy = UnloadOllamaAfterGeneration || !RequireIdleOllama
+            ? "品質不適合時は最大1回再生成" : "品質不適合時の自動再生成はOFF";
         AiReportStatus = RequireIdleOllama
-            ? "Ollamaの空き状態を確認し、ローカルGPUで生成しています…"
-            : "GPU実行枠を確保し、ローカルOllamaで生成しています…";
+            ? $"Ollamaの空き状態を確認し、ローカルGPUで生成しています（{retryPolicy}）…"
+            : $"GPU実行枠を確保し、ローカルOllamaで生成しています（{retryPolicy}）…";
         var gameMonitor = MonitorGameAndCancelAsync(safetySettings, cancellation);
         try
         {
@@ -101,7 +103,8 @@ public sealed partial class MainViewModel
                 return;
             await LoadAiReportAsync();
             var memory = result.ModelUnloaded ? "生成後にGPUからモデルを解放" : "モデルを5分間保持";
-            AiReportStatus = $"生成完了・品質検査OK（{result.Duration:mm\\:ss}、入力 {result.PromptTokens} / 出力 {result.OutputTokens} tokens、{memory}）";
+            var retry = result.Attempts > 1 ? "・自動再生成で修正" : string.Empty;
+            AiReportStatus = $"生成完了・品質検査OK{retry}（{result.Duration:mm\\:ss}、入力 {result.PromptTokens} / 出力 {result.OutputTokens} tokens、{memory}）";
         }
         catch (OperationCanceledException)
         {

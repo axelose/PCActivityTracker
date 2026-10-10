@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Net;
 using System.Net.Sockets;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace LocalAi.Runtime;
@@ -64,21 +65,22 @@ public sealed class OllamaClient : IDisposable
             if (runtime.Models.Count > 0)
                 throw new OllamaBusyException(runtime.Models);
         }
-        var body = new
+        var body = new Dictionary<string, object?>
         {
-            model = request.Model,
-            prompt = request.Prompt,
-            system = request.SystemPrompt,
-            stream = false,
-            think = false,
-            keep_alive = request.UnloadAfterCompletion ? (object)0 : "5m",
-            options = new
+            ["model"] = request.Model,
+            ["prompt"] = request.Prompt,
+            ["system"] = request.SystemPrompt,
+            ["stream"] = false,
+            ["think"] = false,
+            ["keep_alive"] = request.UnloadAfterCompletion ? (object)0 : "5m",
+            ["options"] = new
             {
                 temperature = request.Temperature,
                 num_ctx = request.ContextLength,
                 num_predict = request.MaximumOutputTokens
             }
         };
+        if (request.ResponseFormat is { } format) body["format"] = format;
         using var response = await _httpClient.PostAsJsonAsync(BuildUri("api/generate"), body, timeout.Token)
             .ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
@@ -90,7 +92,7 @@ public sealed class OllamaClient : IDisposable
             .ConfigureAwait(false) ?? throw new OllamaException("Ollama returned an empty response.");
         if (string.IsNullOrWhiteSpace(result.Response)) throw new OllamaException("Ollama generated no report text.");
         return new OllamaGenerateResult(result.Response.Trim(), result.Model, result.TotalDuration,
-            result.PromptEvalCount, result.EvalCount, request.UnloadAfterCompletion);
+            result.PromptEvalCount, result.EvalCount, request.UnloadAfterCompletion, result.DoneReason);
     }
 
     public static Uri ParseLocalEndpoint(string endpoint)
@@ -197,7 +199,8 @@ public sealed class OllamaClient : IDisposable
         [property: JsonPropertyName("response")] string Response,
         [property: JsonPropertyName("total_duration")] long TotalDuration,
         [property: JsonPropertyName("prompt_eval_count")] int PromptEvalCount,
-        [property: JsonPropertyName("eval_count")] int EvalCount);
+        [property: JsonPropertyName("eval_count")] int EvalCount,
+        [property: JsonPropertyName("done_reason")] string? DoneReason);
     private sealed record RunningModelsResponse(
         [property: JsonPropertyName("models")] IReadOnlyList<RunningModelResponse>? Models);
     private sealed record RunningModelResponse(
@@ -212,11 +215,11 @@ public sealed record OllamaGenerateRequest(
     string Model, string Prompt, string SystemPrompt, TimeSpan Timeout,
     bool UnloadAfterCompletion = true, double Temperature = 0.2,
     int ContextLength = 4096, int MaximumOutputTokens = 1200,
-    bool RequireIdleRuntime = false);
+    bool RequireIdleRuntime = false, JsonElement? ResponseFormat = null);
 
 public sealed record OllamaGenerateResult(
     string Text, string Model, long TotalDurationNanoseconds,
-    int PromptTokens, int OutputTokens, bool ModelUnloaded);
+    int PromptTokens, int OutputTokens, bool ModelUnloaded, string? DoneReason = null);
 
 public sealed record OllamaStatus(string Version, IReadOnlyList<OllamaModel> Models,
     IReadOnlyList<OllamaRunningModel> RunningModels);
