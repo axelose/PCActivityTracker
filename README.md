@@ -2,6 +2,15 @@
 
 Windows 11上で、利用アプリ、Foreground Window、Idle、Chrome/Edgeのアクティブサイトを自動記録し、Today / Day / Week / Monthで振り返るローカル専用WPFアプリです。
 
+## 公開先と配布状況
+
+- [ソースコード](https://github.com/axelose/PCActivityTracker)
+- [不具合・機能要望](https://github.com/axelose/PCActivityTracker/issues)（履歴DBや個人のURL・タイトルは添付しないでください）
+- [プライバシーポリシー](https://github.com/axelose/PCActivityTracker/blob/main/PRIVACY.md)
+- [脆弱性の非公開報告](https://github.com/axelose/PCActivityTracker/security)
+
+ソースコードの公開・取得にコード署名証明書は不要です。証明書未取得の間は、下記手順でソースからビルドして利用してください。正式な実行ファイルの配布は、署名・実機検証を完了したうえで[Releases](https://github.com/axelose/PCActivityTracker/releases)から案内します。`-AllowUnsigned`で作成するZIPはローカル検証用であり、公開配布用ではありません。
+
 ## 採用技術
 
 - C# / WPF / MVVM

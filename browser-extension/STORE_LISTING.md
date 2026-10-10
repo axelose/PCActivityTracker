@@ -1,6 +1,15 @@
 # Browser store listing draft
 
-This file is the source text for Chrome Web Store and Microsoft Edge Add-ons review forms. Replace the repository and hosted privacy-policy placeholders before submission.
+This file is the source text for Chrome Web Store and Microsoft Edge Add-ons review forms. The public project URLs below must be checked against each store's current submission requirements before submission; store publication has not been completed.
+
+## Public project URLs
+
+- Repository: https://github.com/axelose/PCActivityTracker
+- Support: https://github.com/axelose/PCActivityTracker/issues
+- Privacy policy: https://github.com/axelose/PCActivityTracker/blob/main/PRIVACY.md
+- Private vulnerability reporting: https://github.com/axelose/PCActivityTracker/security
+
+Do not attach real activity databases, browser tokens, URLs, or window titles to public support issues. Use synthetic examples or the application's anonymized diagnostic export.
 
 ## Name
 
@@ -39,8 +48,8 @@ Incognito/InPrivate access is disabled in the manifest. The extension has no net
 
 ## Required submission assets and external steps
 
-- Host `PRIVACY.md` at a stable public HTTPS URL and enter that exact URL in both stores.
-- Replace this document's repository placeholder with the final public support URL.
+- Check that the public privacy-policy URL above is accessible and accepted by both stores. If a dedicated policy page is required, host the same policy there and update the listing URLs before submission.
+- Use the public support URL above and verify that the private vulnerability-reporting entry point is available.
 - Supply current screenshots showing the options page, popup, and desktop Today screen.
 - Complete each store's data-use form consistently with the declarations above.
 - Do not submit the unpacked development build or an unsigned desktop binary as a public release.

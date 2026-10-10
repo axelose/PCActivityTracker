@@ -1,5 +1,11 @@
 # GitHub public release guide
 
+## Source publication without a signing certificate
+
+ソースコードは https://github.com/axelose/PCActivityTracker で公開します。ソース公開自体にWindowsコード署名証明書は不要です。証明書未取得の間もREADMEの手順でソースからビルドできますが、`-AllowUnsigned`で生成したローカル検証ZIPを正式配布物へ転用しないでください。以下の署名・実機検証・Release作成は、実行ファイルの正式配布に向けた別の工程です。
+
+2026-10-10にDependency graph、Private Vulnerability Reporting、Dependabot alerts／security updates、Secret scanning／Push protectionを有効化・確認しました。自動マージは無効のままです。Dependabot PRは変更内容をレビューしてから取り込み、公開前には設定を再確認してください。
+
 ## Repository settings required before the first release
 
 1. Default branchを `main` にし、Pull Request、必須CI、会話解決を要求するRulesetを設定する。
