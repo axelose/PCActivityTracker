@@ -88,9 +88,11 @@ public sealed partial class MainViewModel
         {
             "アプリ" => CategoryRuleTarget.Application,
             "配信者・チャンネル" => CategoryRuleTarget.Creator,
+            "プロセス" => CategoryRuleTarget.ProcessName,
+            "チャンネルID" => CategoryRuleTarget.CreatorId,
             _ => CategoryRuleTarget.Domain
         };
-        var mode = NewCategoryRuleMatchMode == "正規表現" ? CategoryMatchMode.Regex : CategoryMatchMode.Wildcard;
+        var mode = NewCategoryRuleMatchMode switch { "正規表現" => CategoryMatchMode.Regex, "完全一致" => CategoryMatchMode.Exact, _ => CategoryMatchMode.Wildcard };
         _settingsService.AddCategoryRule(target, NewCategoryRulePattern, NewCategoryRuleCategory,
             mode, NewCategoryRuleColor, NewCategoryRulePriority);
         NewCategoryRulePattern = string.Empty;
@@ -105,9 +107,11 @@ public sealed partial class MainViewModel
         {
             CategoryRuleTarget.Application => "アプリ",
             CategoryRuleTarget.Creator => "配信者・チャンネル",
+            CategoryRuleTarget.ProcessName => "プロセス",
+            CategoryRuleTarget.CreatorId => "チャンネルID",
             _ => "ドメイン"
         }, rule.Pattern, rule.Category,
-            rule.MatchMode == CategoryMatchMode.Regex ? "正規表現" : "ワイルドカード",
+            rule.MatchMode switch { CategoryMatchMode.Regex => "正規表現", CategoryMatchMode.Exact => "完全一致", _ => "ワイルドカード" },
             rule.Color, rule.Priority)));
 
     private async Task PreviewCategoryRuleAsync()
@@ -121,6 +125,8 @@ public sealed partial class MainViewModel
         {
             "アプリ" => CategoryRuleTarget.Application,
             "配信者・チャンネル" => CategoryRuleTarget.Creator,
+            "プロセス" => CategoryRuleTarget.ProcessName,
+            "チャンネルID" => CategoryRuleTarget.CreatorId,
             _ => CategoryRuleTarget.Domain
         };
         var candidate = new CategoryRule
@@ -128,7 +134,7 @@ public sealed partial class MainViewModel
             Target = target,
             Pattern = NewCategoryRulePattern.Trim(),
             Category = SettingsService.NormalizeCategoryPath(NewCategoryRuleCategory),
-            MatchMode = NewCategoryRuleMatchMode == "正規表現" ? CategoryMatchMode.Regex : CategoryMatchMode.Wildcard,
+            MatchMode = NewCategoryRuleMatchMode switch { "正規表現" => CategoryMatchMode.Regex, "完全一致" => CategoryMatchMode.Exact, _ => CategoryMatchMode.Wildcard },
             Color = SettingsService.NormalizeColor(NewCategoryRuleColor),
             Priority = Math.Clamp(NewCategoryRulePriority, 0, 1000)
         };

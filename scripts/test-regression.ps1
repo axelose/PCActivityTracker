@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('memory','browser','aggregation','settings','ui','migration','ai')][string[]]$Suites = @('memory','browser','aggregation','settings','ui','migration','ai'),
+    [ValidateSet('memory','browser','aggregation','settings','ui','migration','ai','categorization')][string[]]$Suites = @('memory','browser','aggregation','settings','ui','migration','ai','categorization'),
     [switch]$SkipBuild
 )
 $ErrorActionPreference = 'Stop'

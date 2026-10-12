@@ -1,5 +1,8 @@
 using PCActivityTracker.Data;
 using PCActivityTracker.Domain;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace PCActivityTracker.Services;
 
@@ -46,19 +49,20 @@ public sealed class ActivityExplorerService
         long seconds = 0;
         foreach (var session in _activities.GetRange(start, end).Where(item => !item.IsIdle))
         {
-            if (!ActivityCategorizer.MatchesRule(candidate, session.AppName, session.Domain, session.CreatorName)) continue;
+            if (!ActivityCategorizer.MatchesRule(candidate, session)) continue;
             matches.Add(session);
             var clippedStart = session.StartTime < start ? start : session.StartTime;
             var clippedEnd = session.EndTime > end ? end : session.EndTime;
             seconds += Math.Max(0, (long)(clippedEnd - clippedStart).TotalSeconds);
-            if (existing.Any(rule => ActivityCategorizer.MatchesRule(rule,
-                    session.AppName, session.Domain, session.CreatorName))) conflicts++;
+            if (existing.Any(rule => ActivityCategorizer.MatchesRule(rule, session))) conflicts++;
         }
 
         var examples = matches.Select(session => candidate.Target switch
             {
                 CategoryRuleTarget.Domain => session.Domain,
                 CategoryRuleTarget.Creator => session.CreatorName,
+                CategoryRuleTarget.ProcessName => session.ProcessName,
+                CategoryRuleTarget.CreatorId => session.CreatorId,
                 _ => session.AppName
             })
             .Where(value => !string.IsNullOrWhiteSpace(value)).Cast<string>()
@@ -66,10 +70,99 @@ public sealed class ActivityExplorerService
         return new CategoryRulePreview(matches.Count, seconds, conflicts, examples);
     }
 
-    private IReadOnlyList<SearchSegment> BuildSegments(IReadOnlyList<ActivitySession> sessions,
-        IReadOnlyList<ActivityAnnotation> annotations, DateTimeOffset rangeStart, DateTimeOffset rangeEnd)
+    public IReadOnlyList<UnclassifiedEntry> GetUnclassified(DateTimeOffset start, DateTimeOffset end)
     {
+        if (end <= start) throw new ArgumentOutOfRangeException(nameof(end));
+        var annotations = _annotations.GetRange(start, end);
+        IEnumerable<(ActivitySession Session, long Seconds, int Count)> source;
         var rules = _settings.CategoryRules;
+        if (annotations.Any(item => !string.IsNullOrWhiteSpace(item.CategoryOverride)))
+        {
+            source = BuildSegments(_activities.GetRange(start, end), annotations, start, end, rules)
+                .Where(item => !item.Session.IsIdle && string.IsNullOrWhiteSpace(item.Annotation?.CategoryOverride))
+                .GroupBy(item => item.Session.Id)
+                .Select(group => (group.First().Session, group.Sum(item => item.Seconds), 1));
+        }
+        else
+        {
+            source = _activities.GetClassificationUsage(start, end).Select(row =>
+                (new ActivitySession { AppName = row.AppName, ProcessName = row.ProcessName, Domain = row.Domain,
+                    CreatorName = row.CreatorName, CreatorId = row.CreatorId }, row.Seconds, row.SessionCount));
+        }
+        return source.Where(item =>
+            {
+                var result = ActivityCategorizer.Evaluate(item.Session, rules);
+                // An explicit user rule assigning Other is an intentional choice.
+                return result.Category == "Other" && result.MatchedRule is null && item.Seconds > 0;
+            }).Select(item => new { Draft = CategoryRuleDraft.FromSession(item.Session, "Other"),
+                Name = item.Session.Domain ?? item.Session.AppName, item.Seconds, item.Count })
+            .GroupBy(item => (item.Draft.Target, item.Draft.Pattern))
+            .Select(group => new UnclassifiedEntry(group.Key.Target, group.Key.Pattern, group.First().Name,
+                group.Sum(item => item.Seconds), group.Sum(item => item.Count)))
+            .OrderByDescending(item => item.Seconds).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    public CategoryRuleReview PreviewCategoryRules(IReadOnlyList<CategoryRuleDraft> drafts,
+        DateTimeOffset start, DateTimeOffset end)
+    {
+        if (end <= start || drafts.Count is < 1 or > 100) throw new ArgumentException("期間と選択対象（1～100件）を確認してください。");
+        var desired = Array.AsReadOnly(drafts.Select(draft => draft with
+            { Pattern = draft.Pattern.Trim(), Category = SettingsService.NormalizeCategoryPath(draft.Category),
+                Priority = Math.Clamp(draft.Priority, 0, 1000) }).ToArray());
+        foreach (var draft in desired)
+            if (!Enum.IsDefined(draft.Target) || string.IsNullOrWhiteSpace(draft.Pattern) || draft.Pattern.Length > 200 ||
+                string.IsNullOrWhiteSpace(draft.Category) || draft.Category.Length > 120 || draft.Pattern.Any(char.IsControl))
+                throw new ArgumentException("分類パターンは200文字、カテゴリは120文字以内で指定してください。");
+        if (desired.Select((draft, index) => desired.Take(index).Any(prior => CategoryRuleDraft.SameKey(prior.ToRule(), draft.ToRule()))).Any(duplicate => duplicate))
+            throw new ArgumentException("同じ分類対象が重複しています。");
+        var sessions = _activities.GetRange(start, end);
+        var annotations = _annotations.GetRange(start, end);
+        var existing = _settings.CategoryRules;
+        var candidates = desired.Select(draft =>
+        {
+            var rule = draft.ToRule();
+            rule.Id = existing.FirstOrDefault(old => CategoryRuleDraft.SameKey(old, rule))?.Id ?? long.MaxValue;
+            return rule;
+        }).ToArray();
+        var simulated = existing.Where(old => !candidates.Any(candidate => CategoryRuleDraft.SameKey(candidate, old)))
+            .Concat(candidates).ToArray();
+        var matching = sessions.Where(session => !session.IsIdle && candidates.Any(rule => ActivityCategorizer.MatchesRule(rule, session))).ToArray();
+        var conflicts = matching.Count(session => existing.Any(rule =>
+            !candidates.Any(candidate => CategoryRuleDraft.SameKey(candidate, rule)) &&
+            ActivityCategorizer.MatchesRule(rule, session)));
+        long seconds = 0, changed = 0, protectedSeconds = 0;
+        foreach (var segment in BuildSegments(sessions, annotations, start, end, existing))
+        {
+            if (segment.Session.IsIdle || !candidates.Any(rule => ActivityCategorizer.MatchesRule(rule, segment.Session))) continue;
+            seconds += segment.Seconds;
+            if (!string.IsNullOrWhiteSpace(segment.Annotation?.CategoryOverride)) protectedSeconds += segment.Seconds;
+            else if (!string.Equals(segment.Category, ActivityCategorizer.Evaluate(segment.Session, simulated).Category,
+                         StringComparison.OrdinalIgnoreCase)) changed += segment.Seconds;
+        }
+        var evidence = JsonSerializer.Serialize(new
+        {
+            start, end, desired, existing,
+            sessions = sessions.Select(item => new { item.Id, item.StartTime, item.EndTime, item.AppName,
+                item.ProcessName, item.Domain, item.CreatorName, item.CreatorId, item.IsIdle }),
+            annotations = annotations.Select(item => new { item.Id, item.StartTime, item.EndTime, item.UpdatedAt, item.CategoryOverride })
+        });
+        var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(evidence)));
+        return new(start, end, desired, matching.Length, seconds, changed, protectedSeconds, conflicts, fingerprint);
+    }
+
+    public void ApplyCategoryRules(CategoryRuleReview review)
+    {
+        var current = PreviewCategoryRules(review.Drafts, review.Start, review.End);
+        if (current.Fingerprint != review.Fingerprint)
+            throw new InvalidOperationException("履歴または分類ルールが変更されました。再度プレビューしてください。");
+        _settings.AddCategoryRules(current.Drafts);
+    }
+
+    private IReadOnlyList<SearchSegment> BuildSegments(IReadOnlyList<ActivitySession> sessions,
+        IReadOnlyList<ActivityAnnotation> annotations, DateTimeOffset rangeStart, DateTimeOffset rangeEnd,
+        IReadOnlyList<CategoryRule>? rulesOverride = null)
+    {
+        var rules = rulesOverride ?? _settings.CategoryRules;
         var result = new List<SearchSegment>();
         foreach (var session in sessions)
         {
@@ -93,8 +186,7 @@ public sealed class ActivityExplorerService
                 var midpoint = pieceStart + TimeSpan.FromTicks((pieceEnd - pieceStart).Ticks / 2);
                 var annotation = overlaps.Where(item => item.StartTime <= midpoint && item.EndTime > midpoint)
                     .OrderByDescending(item => item.UpdatedAt).ThenByDescending(item => item.Id).FirstOrDefault();
-                var categorization = ActivityCategorizer.Evaluate(session.AppName, session.Domain,
-                    session.IsIdle, session.CreatorName, rules);
+                var categorization = ActivityCategorizer.Evaluate(session, rules);
                 var category = string.IsNullOrWhiteSpace(annotation?.CategoryOverride)
                     ? categorization.Category
                     : annotation.CategoryOverride;
@@ -268,7 +360,7 @@ public sealed class ActivityExplorerService
                 segment.Annotation?.ProjectName ?? string.Empty, segment.Annotation?.TaskName ?? string.Empty,
                 segment.Annotation?.Note ?? string.Empty, segment.Annotation?.Id ?? 0,
                 segment.Annotation?.StartTime, segment.Annotation?.EndTime,
-                _containsFocus, _containsSwitch, _contributions.Count);
+                _containsFocus, _containsSwitch, _contributions.Count, session.ProcessName, session.CreatorId ?? string.Empty);
         }
 
         private static string FirstNotEmpty(params string?[] values) =>
@@ -297,7 +389,7 @@ public sealed record ExplorerEntry(DateTimeOffset Start, DateTimeOffset End, str
     long Seconds, bool IsIdle, bool IsWebsite, string AppName, string Domain, string Creator, string Category,
     string CategoryReason, string Project, string Task, string Note, long AnnotationId,
     DateTimeOffset? AnnotationStart, DateTimeOffset? AnnotationEnd,
-    bool IsFocus, bool IsSwitch, int ActivityCount);
+    bool IsFocus, bool IsSwitch, int ActivityCount, string ProcessName = "", string CreatorId = "");
 
 public sealed record CategoryRulePreview(int SessionCount, long Seconds, int ConflictCount,
     IReadOnlyList<string> Examples);

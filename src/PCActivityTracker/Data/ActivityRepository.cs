@@ -99,6 +99,21 @@ public sealed class ActivityRepository
     public IReadOnlyList<ActivityUsageRow> GetCategoryUsage(DateTimeOffset start, DateTimeOffset end) =>
         GetUsage(start, end, "category", "is_idle=0");
 
+    // Labels only: reclassify historical totals without loading URLs/titles or
+    // rewriting the category captured in the original session.
+    public IReadOnlyList<ClassificationUsageRow> GetClassificationUsage(DateTimeOffset start, DateTimeOffset end) =>
+        _database.Query("""
+            SELECT app_name, process_name, domain, creator_name, creator_id, COUNT(*) AS sessions,
+                SUM(CAST(MAX(0, MIN(end_utc_ms, ?2) - MAX(start_utc_ms, ?1)) / 1000 AS INTEGER)) AS seconds
+            FROM activity_sessions
+            WHERE end_utc_ms > ?1 AND start_utc_ms < ?2 AND is_idle=0
+            GROUP BY app_name, process_name, domain, creator_name, creator_id
+            HAVING seconds > 0;
+            """, start, end).Select(row => new ClassificationUsageRow(
+                row.String("app_name") ?? "Unknown", row.String("process_name") ?? string.Empty,
+                row.String("domain"), row.String("creator_name"), row.String("creator_id"),
+                row.Int64("seconds"), checked((int)row.Int64("sessions")))).ToList();
+
     public IReadOnlyList<DailyActivityRow> GetDailyUsage(DateTimeOffset start, DateTimeOffset end)
     {
         if (end <= start) return Array.Empty<DailyActivityRow>();
@@ -266,3 +281,5 @@ public sealed record ActivityUsageRow(string Name, long Seconds, string? Identit
 public sealed record DailyActivityRow(DateTimeOffset DayStart, long Seconds, long IdleSeconds);
 public sealed record HourlyActivityRow(DateTimeOffset HourStart, long Seconds);
 public sealed record ActivityIntervalRow(DateTimeOffset Start, DateTimeOffset End, bool IsIdle);
+public sealed record ClassificationUsageRow(string AppName, string ProcessName, string? Domain,
+    string? CreatorName, string? CreatorId, long Seconds, int SessionCount);

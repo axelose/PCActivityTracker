@@ -6,6 +6,9 @@ using System.Xml.Linq;
 using System.IO;
 using System.Windows.Controls;
 using System.Reflection;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Input;
 using LocalAi.Runtime;
 using PCActivityTracker;
 using PCActivityTracker.Browser;
@@ -94,11 +97,41 @@ internal static class UiTests
                         content.Arrange(new Rect(0, 0, 1280, 900));
                         content.UpdateLayout();
                         Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
+                        if (page == "Explorer")
+                        {
+                            var sampleStart = new DateTimeOffset(DateTime.Today.AddHours(9));
+                            var sample = new ExplorerTimelineItem(0, sampleStart, sampleStart.AddMinutes(5),
+                                null, null, "09:00 – 09:05", "www.youtube.com", "Synthetic Channel", "5分", "Entertainment",
+                                "標準分類: youtube.com", "", "", "", false, true, true, false, 1,
+                                "Google Chrome", "chrome", "www.youtube.com", "Synthetic Channel", "youtube:channel:UC" + new string('a', 22));
+                            model.ExplorerTimeline.Clear(); model.ExplorerTimeline.Add(sample); model.SelectedExplorerItem = sample;
+                            typeof(MainViewModel).GetProperty(nameof(MainViewModel.HasNoExplorerResults))!.SetValue(model, false);
+                            model.QuickCategory = "Education";
+                            Check.That(model.CanQuickCategorize && model.QuickCategoryScope == "チャンネルID", "Channel history did not prefer stable ID rule.");
+                            Check.That(!model.CanSaveQuickCategory, "A quick rule could save without review.");
+                            content.UpdateLayout();
+                            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
+                            Render(content, "explorer-" + theme + "-timeline");
+                            typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, true);
+                            model.UnclassifiedItems.Add(new UnclassifiedItem(CategoryRuleTarget.ProcessName, "synthetic-editor", "Synthetic Editor", "43分", 8, 2580));
+                            model.UnclassifiedItems.Add(new UnclassifiedItem(CategoryRuleTarget.Domain, "unknown.example.test", "unknown.example.test", "18分", 3, 1080));
+                            content.UpdateLayout();
+                            Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
+                            var list = (ListBox)window.FindName("UnclassifiedList");
+                            list.SelectedItems.Add(model.UnclassifiedItems[0]);
+                            list.SelectedItems.Add(model.UnclassifiedItems[1]);
+                            Check.That(list.SelectedItems.Count == 2 && !model.CanSaveBatchCategory, "Unknown multi-select or review gating failed.");
+                            Render(content, "explorer-" + theme + "-unclassified");
+                            model.UnclassifiedItems.Clear();
+                            typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, false);
+                        }
                     }
                 }
+                ExerciseCategoryCommands(model, fixture);
                 Check.That(errors.Errors.Count == 0, "WPF binding errors: " + string.Join(" | ", errors.Errors));
                 model.ReleaseUiData();
-                Check.That(model.Timeline.Count == 0 && model.CreatorRankings.Count == 0, "UI release retained rankings.");
+                Check.That(model.Timeline.Count == 0 && model.CreatorRankings.Count == 0 && model.UnclassifiedItems.Count == 0 &&
+                    !model.CanSaveBatchCategory && !model.CanSaveQuickCategory, "UI release retained rankings or reviews.");
             }
             finally
             {
@@ -113,6 +146,76 @@ internal static class UiTests
             backup.DisposeAsync().AsTask().GetAwaiter().GetResult();
             tracker.DisposeAsync().AsTask().GetAwaiter().GetResult();
         }
+    }
+    private static void Render(FrameworkElement content, string name)
+    {
+        content.Measure(new Size(1280, 900)); content.Arrange(new Rect(0, 0, 1280, 900)); content.UpdateLayout();
+        var bitmap = new RenderTargetBitmap(1280, 900, 96, 96, PixelFormats.Pbgra32);
+        bitmap.Render(content);
+        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        // Synthetic UI previews stay in ignored build output, never public source.
+        using var stream = File.Create(Path.Combine(AppContext.BaseDirectory, name + ".png")); encoder.Save(stream);
+    }
+
+    private static void ExerciseCategoryCommands(MainViewModel model, Fixture fixture)
+    {
+        var oldContext = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
+        try
+        {
+            typeof(MainViewModel).GetProperty(nameof(MainViewModel.SelectedPage))!.SetValue(model, "Explorer");
+            var start = new DateTimeOffset(DateTime.Today.AddHours(9));
+            var id = "youtube:channel:UC" + new string('b', 22);
+            fixture.Activities.Save(new ActivitySession { StartTime = start, EndTime = start.AddMinutes(5),
+                ActivityType = ActivityType.Website, AppName = "Chrome", ProcessName = "chrome", Domain = "youtube.com",
+                CreatorName = "Synthetic learning channel", CreatorId = id });
+            model.SelectedExplorerItem = new ExplorerTimelineItem(0, start, start.AddMinutes(5), null, null,
+                "09:00 – 09:05", "youtube.com", "Synthetic", "5分", "Entertainment", "Preset", "", "", "",
+                false, true, false, false, 1, "Chrome", "chrome", "youtube.com", "Synthetic", id);
+            model.QuickCategory = " 学習 / 技術 ";
+            Execute(model.PreviewQuickCategoryCommand);
+            Check.That(model.CanSaveQuickCategory, "UI quick preview did not enable confirmed save: " + model.StatusMessage);
+            model.QuickCategory = "Education";
+            Check.That(!model.CanSaveQuickCategory, "Changing category did not invalidate review.");
+            Execute(model.PreviewQuickCategoryCommand); Execute(model.SaveQuickCategoryCommand);
+            Check.That(fixture.Settings.CategoryRules.Any(rule => rule.Target == CategoryRuleTarget.CreatorId && rule.Pattern == id && rule.Category == "Education"),
+                "UI quick command did not persist a stable-ID rule: " + model.StatusMessage);
+            model.QuickCategory = "Manual > Temporary";
+            Execute(model.SetIntervalCategoryCommand);
+            Check.That(fixture.Annotations.GetRange(start, start.AddMinutes(5)).Single().CategoryOverride == "Manual > Temporary",
+                "UI time-only correction failed: " + model.StatusMessage);
+            var selected = new[] { new UnclassifiedItem(CategoryRuleTarget.ProcessName, "synthetic-editor", "Synthetic Editor", "1分", 1, 60),
+                new UnclassifiedItem(CategoryRuleTarget.Domain, "unknown.example.test", "unknown.example.test", "1分", 1, 60) };
+            typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, true);
+            model.BatchCategory = " 仕事 / 開発 ";
+            Execute(model.PreviewBatchCategoryCommand, selected);
+            Check.That(model.CanSaveBatchCategory, "UI batch preview failed: " + model.StatusMessage);
+            var count = fixture.Settings.CategoryRules.Count;
+            Execute(model.SaveBatchCategoryCommand, selected.Take(1).ToArray());
+            Check.That(fixture.Settings.CategoryRules.Count == count, "Changing selected targets bypassed confirmation.");
+            Execute(model.SaveBatchCategoryCommand, selected);
+            Check.That(fixture.Settings.CategoryRules.Count == count + 2 && fixture.Settings.CategoryRules.Count(rule => rule.Category == "仕事 > 開発") == 2,
+                "UI batch save or category normalization failed: " + model.StatusMessage);
+            typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, false);
+        }
+        finally { SynchronizationContext.SetSynchronizationContext(oldContext); }
+    }
+
+    private static void Execute(ICommand command, object? parameter = null)
+    {
+        var frame = new DispatcherFrame();
+        var timedOut = false;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        timer.Tick += (_, _) => { timedOut = true; frame.Continue = false; };
+        EventHandler handler = (_, _) => { if (command.CanExecute(parameter)) frame.Continue = false; };
+        command.CanExecuteChanged += handler;
+        try
+        {
+            timer.Start(); command.Execute(parameter);
+            if (!command.CanExecute(parameter)) Dispatcher.PushFrame(frame);
+            Check.That(!timedOut, "UI classification command timed out.");
+        }
+        finally { timer.Stop(); command.CanExecuteChanged -= handler; }
     }
     private sealed class BindingErrorListener : TraceListener
     {

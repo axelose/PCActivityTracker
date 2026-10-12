@@ -267,17 +267,17 @@ internal static partial class SelfTestRunner
                 !storedSecrets.ContainsKey("BrowserBridgeTokenProtected"))
                 throw new InvalidOperationException("The browser bridge token was not migrated to DPAPI-protected storage.");
 
-            settingsService.AddCategoryRule(CategoryRuleTarget.Domain, "github.com", "Research");
+            settingsService.AddCategoryRule(CategoryRuleTarget.Domain, "github.com", "Research > Custom");
             settingsService.AddCategoryRule(CategoryRuleTarget.Creator, "*learning*", "Education");
-            if (settingsService.Categorize("Google Chrome", "docs.github.com", false) != "Research" ||
+            if (settingsService.Categorize("Google Chrome", "docs.github.com", false) != "Research > Custom" ||
                 settingsService.Categorize("Google Chrome", "youtube.com", false, "My Learning Channel") != "Education" ||
                 settingsService.CategoryRules.Count != 2)
                 throw new InvalidOperationException("Local category rules were not applied by target and priority.");
             var categorizedReport = new AggregationService(repository, settingsService)
                 .BuildReport(day, day.AddDays(1), includeTimeline: false);
-            if (categorizedReport.Categories.FirstOrDefault(item => item.Name == "Research")?.Seconds != 900)
+            if (categorizedReport.Categories.FirstOrDefault(item => item.Name == "Research > Custom")?.Seconds != 900)
                 throw new InvalidOperationException("A category rule was not applied retroactively to report data.");
-            var researchRuleId = settingsService.CategoryRules.Single(item => item.Category == "Research").Id;
+            var researchRuleId = settingsService.CategoryRules.Single(item => item.Category == "Research > Custom").Id;
             settingsService.RemoveCategoryRule(researchRuleId);
             var revertedReport = new AggregationService(repository, settingsService)
                 .BuildReport(day, day.AddDays(1), includeTimeline: false);

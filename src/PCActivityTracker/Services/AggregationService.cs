@@ -27,7 +27,7 @@ public sealed class AggregationService
         var creators = _repository.GetCreatorUsage(start, end).Select(item => new UsageTotal(item.Name, item.Seconds, item.Identity)).ToList();
         var categoryRules = _settings?.CategoryRules;
         var annotations = _annotations?.GetRange(start, end) ?? Array.Empty<ActivityAnnotation>();
-        var useLiveCategories = (categoryRules?.Count ?? 0) > 0 || annotations.Any(item => !string.IsNullOrWhiteSpace(item.CategoryOverride));
+        var useLiveCategories = annotations.Any(item => !string.IsNullOrWhiteSpace(item.CategoryOverride));
         var sessions = includeTimeline || useLiveCategories
             ? _repository.GetRange(start, end)
                 .Select(session => new ClippedActivity(session, Max(session.StartTime, start), Min(session.EndTime, end)))
@@ -42,7 +42,11 @@ public sealed class AggregationService
                 .GroupBy(item => item.Category, StringComparer.OrdinalIgnoreCase)
                 .Select(group => new UsageTotal(group.Key, group.Sum(item => item.Seconds)))
                 .OrderByDescending(item => item.Seconds).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToList()
-            : _repository.GetCategoryUsage(start, end).Select(item => new UsageTotal(item.Name, item.Seconds)).ToList();
+            : _repository.GetClassificationUsage(start, end)
+                .GroupBy(item => ActivityCategorizer.Categorize(item.AppName, item.Domain, false, item.CreatorName,
+                    categoryRules, item.ProcessName, item.CreatorId), StringComparer.OrdinalIgnoreCase)
+                .Select(group => new UsageTotal(group.Key, group.Sum(item => item.Seconds)))
+                .OrderByDescending(item => item.Seconds).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToList();
         IReadOnlyList<TimelineEntry> timeline = includeTimeline
             ? pieces.Select(item => new TimelineEntry(
                 item.Start.LocalDateTime,
@@ -379,9 +383,8 @@ public sealed class AggregationService
         return result;
     }
 
-    private static string Categorize(ActivitySession session, IReadOnlyList<CategoryRule>? rules) => rules is null
-        ? session.Category
-        : ActivityCategorizer.Categorize(session.AppName, session.Domain, session.IsIdle, session.CreatorName, rules);
+    private static string Categorize(ActivitySession session, IReadOnlyList<CategoryRule>? rules) =>
+        ActivityCategorizer.Evaluate(session, rules).Category;
 
     internal static FocusSummary CalculateFocus(IReadOnlyList<ActivityIntervalRow> intervals,
         DateTimeOffset rangeStart, DateTimeOffset rangeEnd)

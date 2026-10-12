@@ -227,6 +227,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }, HandleCommandError);
         SaveAnnotationCommand = new AsyncRelayCommand(async _ => await SaveAnnotationAsync(), HandleCommandError);
         DeleteAnnotationCommand = new AsyncRelayCommand(async _ => await DeleteAnnotationAsync(), HandleCommandError);
+        InitializeCategoryTools();
 
         LoadSettings();
         LoadExclusions();
@@ -279,6 +280,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SwitchDestinations.Clear();
         PeriodChanges.Clear();
         ExplorerTimeline.Clear();
+        UnclassifiedItems.Clear();
+        InvalidateCategoryReviews();
         InterruptionSources.Clear();
         FocusHours.Clear();
         FocusDistribution.Clear();
@@ -295,6 +298,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (!_uiActive || IsSettings || IsAiReports) return;
         if (IsExplorer)
         {
+            // Do not discard an editor/review or bulk selection every 30 seconds.
+            if (SelectedExplorerItem is not null || IsUnclassifiedView) return;
             await SearchExplorerAsync();
             return;
         }

@@ -5,6 +5,65 @@
         Background="{DynamicResource Canvas}" WindowStartupLocation="CenterScreen"
         Closing="Window_Closing">
     <Window.Resources>
+        <Style x:Key="CategoryComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="Background" Value="{DynamicResource Panel}" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
+                <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="4">
+                    <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+                <ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Accent}" />
+                    <Setter Property="Foreground" Value="White" />
+                </Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="CategoryCombo" TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource Ink}" />
+            <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Stroke}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="MaxDropDownHeight" Value="300" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource CategoryComboItem}" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+                <Grid>
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="7">
+                        <Grid>
+                            <ToggleButton Focusable="False" ClickMode="Press" Background="Transparent"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                <ToggleButton.Template><ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="Transparent"><TextBlock Text="⌄" Foreground="{DynamicResource MutedInk}" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" /></Border>
+                                </ControlTemplate></ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="Selection" IsHitTestVisible="False" Margin="10,6,32,6" VerticalAlignment="Center"
+                                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                            <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" Margin="8,2,30,2" BorderThickness="0" Background="Transparent"
+                                     Foreground="{TemplateBinding Foreground}" IsReadOnly="{TemplateBinding IsReadOnly}" VerticalContentAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False">
+                        <Border MinWidth="{TemplateBinding ActualWidth}" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Stroke}" BorderThickness="1" CornerRadius="7" Padding="4" Margin="0,3,0,0">
+                            <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" /></ScrollViewer>
+                        </Border>
+                    </Popup>
+                </Grid>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsEditable" Value="True"><Setter TargetName="Selection" Property="Visibility" Value="Collapsed" /><Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" /><Setter Property="IsTabStop" Value="False" /></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="CategorySaveButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border Background="{TemplateBinding Background}" CornerRadius="7" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                </Border>
+                <ControlTemplate.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4" /></Trigger></ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
         <Style x:Key="PeriodDateButtonStyle" TargetType="ToggleButton">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{DynamicResource Ink}" />
@@ -651,31 +710,37 @@
                 </Grid.RowDefinitions>
                 <Border Style="{DynamicResource Card}" Margin="0,0,0,12" Padding="16">
                     <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button Style="{DynamicResource SecondaryButton}" Content="履歴・分類" Command="{Binding ShowExplorerTimelineCommand}" Padding="14,7" />
+                            <Button Style="{DynamicResource SecondaryButton}" Content="未分類を整理" Command="{Binding ShowUnclassifiedCommand}" Padding="14,7" Margin="8,0,0,0" />
+                        </StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="125" /><ColumnDefinition Width="112" />
                                 <ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <ComboBox ItemsSource="{Binding ExplorerRanges}" SelectedItem="{Binding ExplorerRange}"
+                            <ComboBox Style="{StaticResource CategoryCombo}" ItemsSource="{Binding ExplorerRanges}" SelectedItem="{Binding ExplorerRange}"
                                       Padding="7" ToolTip="検索期間" />
-                            <ComboBox Grid.Column="1" ItemsSource="{Binding TimelineZoomChoices}"
+                            <ComboBox Grid.Column="1" Style="{StaticResource CategoryCombo}" ItemsSource="{Binding TimelineZoomChoices}"
                                       SelectedItem="{Binding TimelineZoomMinutes}" Padding="7" Margin="8,0,0,0"
+                                      Visibility="{Binding IsExplorerTimelineView, Converter={StaticResource BoolToVisibility}}"
                                       ToolTip="タイムライン表示粒度（分）" />
                             <TextBox Grid.Column="2" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Visibility="{Binding IsExplorerTimelineView, Converter={StaticResource BoolToVisibility}}"
                                      Padding="9" Margin="8,0" ToolTip="タイトル、URL、メモなどを横断検索" />
                             <Button Grid.Column="3" Style="{DynamicResource PrimaryButton}" Content="検索"
                                     Command="{Binding SearchExplorerCommand}" Padding="18,8" />
                             <Button Grid.Column="4" Style="{DynamicResource SecondaryButton}" Content="条件をクリア"
                                     Command="{Binding ClearExplorerCommand}" Padding="14,8" Margin="8,0,0,0" />
                         </Grid>
-                        <UniformGrid Columns="5" Margin="0,10,0,0">
+                        <UniformGrid Columns="5" Margin="0,10,0,0" Visibility="{Binding IsExplorerTimelineView, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Margin="0,0,6,0"><TextBlock Text="アプリ" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchApp, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
                             <StackPanel Margin="6,0"><TextBlock Text="ドメイン" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchDomain, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
                             <StackPanel Margin="6,0"><TextBlock Text="配信者・チャンネル" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchCreator, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
                             <StackPanel Margin="6,0"><TextBlock Text="カテゴリ" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchCategory, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
                             <StackPanel Margin="6,0,0,0"><TextBlock Text="プロジェクト" Foreground="{DynamicResource MutedInk}" FontSize="11" /><TextBox Text="{Binding SearchProject, UpdateSourceTrigger=PropertyChanged}" Padding="7" Margin="0,3,0,0" /></StackPanel>
                         </UniformGrid>
-                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0" Visibility="{Binding IsExplorerTimelineView, Converter={StaticResource BoolToVisibility}}">
                             <CheckBox Content="Idleを含む" IsChecked="{Binding SearchIncludeIdle}" Margin="0,0,20,0" />
                             <CheckBox Content="25分以上の集中区間だけ" IsChecked="{Binding SearchOnlyFocus}" Margin="0,0,20,0" />
                             <CheckBox Content="切替に関係する区間だけ" IsChecked="{Binding SearchOnlySwitches}" />
@@ -684,7 +749,7 @@
                 </Border>
                 <TextBlock Grid.Row="1" Text="{Binding ExplorerStatus}" Foreground="{DynamicResource MutedInk}"
                            Margin="4,0,0,10" />
-                <Grid Grid.Row="2">
+                <Grid Grid.Row="2" Visibility="{Binding IsExplorerTimelineView, Converter={StaticResource BoolToVisibility}}">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="340" /></Grid.ColumnDefinitions>
                     <Border Style="{DynamicResource Card}" Margin="0,0,10,0" Padding="12">
                         <Grid>
@@ -733,6 +798,8 @@
                     <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="10,0,0,0" Padding="16">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel IsEnabled="{Binding HasSelectedExplorerItem}">
+                                <Expander Header="区間の注釈・手動補正" IsExpanded="False">
+                                <StackPanel>
                                 <TextBlock Text="選択区間を補正" FontSize="18" FontWeight="SemiBold" />
                                 <TextBlock Text="自動記録は変更せず、取り消せる注釈として保存します。行を選んで時刻や内容を調整できます。"
                                            Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,5,0,14" />
@@ -752,6 +819,76 @@
                                 <Button Style="{DynamicResource PrimaryButton}" Content="補正を保存" Command="{Binding SaveAnnotationCommand}" Padding="16,9" />
                                 <Button Style="{DynamicResource SecondaryButton}" Content="この補正を取り消す" Command="{Binding DeleteAnnotationCommand}"
                                         Padding="16,9" Margin="0,8,0,0" Visibility="{Binding CanDeleteAnnotation, Converter={StaticResource BoolToVisibility}}" />
+                                </StackPanel>
+                                </Expander>
+                                <Separator Margin="0,18" />
+                                <TextBlock Text="この履歴から分類する" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding QuickSourceStatus}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" Margin="0,6,0,12" />
+                                <TextBlock Text="ルールは履歴削除・保存期間の対象外です。設定から削除するまで保持します。" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,0,0,10" />
+                                <TextBlock Text="分類先（自由入力可）" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <ComboBox x:Name="QuickCategoryCombo" Style="{StaticResource CategoryCombo}" IsEditable="True" ItemsSource="{Binding CategoryChoices}" Text="{Binding QuickCategory, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,4,0,8" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="この区間だけカテゴリを補正" Command="{Binding SetIntervalCategoryCommand}" Padding="12,8" Margin="0,0,0,12" />
+                                <StackPanel IsEnabled="{Binding CanQuickCategorize}">
+                                    <TextBlock Text="今後も分類する対象" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                    <ComboBox Style="{StaticResource CategoryCombo}" ItemsSource="{Binding QuickCategoryScopes}" SelectedItem="{Binding QuickCategoryScope}" Padding="8" Margin="0,4,0,8" />
+                                    <TextBlock Text="優先度（0～1000、大きいほど優先）" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                    <ComboBox Style="{StaticResource CategoryCombo}" ItemsSource="{Binding QuickPriorityChoices}" SelectedItem="{Binding QuickCategoryPriority}" Padding="8" Margin="0,4,0,8" />
+                                    <TextBlock Text="{Binding QuickCategoryPreview}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" Margin="0,3,0,10" />
+                                    <Button Style="{DynamicResource SecondaryButton}" Content="影響をプレビュー" Command="{Binding PreviewQuickCategoryCommand}" Padding="12,8" />
+                                    <Button Style="{StaticResource CategorySaveButton}" Content="確認したルールを保存" Command="{Binding SaveQuickCategoryCommand}" IsEnabled="{Binding CanSaveQuickCategory}" Padding="12,8" Margin="0,8,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+                <Grid Grid.Row="2" Visibility="{Binding IsUnclassifiedView, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="340" /></Grid.ColumnDefinitions>
+                    <Border Style="{DynamicResource Card}" Margin="0,0,10,0" Padding="16">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                            <TextBlock Text="{Binding UnclassifiedStatus}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Grid.Row="1" Text="Ctrl／Shiftで複数選択。一括保存は最大100対象。Idle・手動補正・明示的にOtherへ分類した対象は含みません。"
+                                       Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,6,0,12" />
+                            <ListBox Grid.Row="2" x:Name="UnclassifiedList" ItemsSource="{Binding UnclassifiedItems}" SelectionMode="Extended"
+                                     BorderThickness="0" Background="Transparent" ScrollViewer.CanContentScroll="True"
+                                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                                <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate><DataTemplate>
+                                    <Grid Margin="2,7" MinWidth="240">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <StackPanel Margin="0,0,12,0">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                            <TextBlock Text="{Binding TargetLabel}" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,3,0,0" />
+                                            <TextBlock Text="{Binding Pattern}" Foreground="{DynamicResource MutedInk}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Pattern}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                            <TextBlock Text="{Binding Duration}" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding SessionCount, StringFormat={}{0}セッション}" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,3,0,0" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate></ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Border>
+                    <Border Grid.Column="1" Style="{DynamicResource Card}" Padding="16" Margin="10,0,0,0">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="選択した対象を一括分類" FontSize="18" FontWeight="SemiBold" />
+                                <TextBlock Text="ドメイン・プロセス・アプリの完全一致ルールを作成します。元の履歴は変更せず、過去・今後の集計に適用します。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" Margin="0,8,0,16" />
+                                <TextBlock Text="分類先（自由入力可）" Foreground="{DynamicResource MutedInk}" FontSize="11" />
+                                <ComboBox Style="{StaticResource CategoryCombo}" IsEditable="True" ItemsSource="{Binding CategoryChoices}" Text="{Binding BatchCategory, UpdateSourceTrigger=PropertyChanged}" Padding="8" Margin="0,4,0,8" />
+                                <TextBlock Text="Education＝学習／Gaming＝ゲーム。カテゴリは成果や生産性の評価ではありません。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12" />
+                                <TextBlock Text="サイト情報のないブラウザはプロセスとして表示されます。そのルールは別サイトにも適用されるため、プレビューの件数と時間を確認してください。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12" />
+                                <TextBlock Text="{Binding BatchCategoryPreview}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" Margin="0,0,0,12" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="選択項目の影響をプレビュー" Command="{Binding PreviewBatchCategoryCommand}"
+                                        CommandParameter="{Binding SelectedItems, ElementName=UnclassifiedList}" Padding="12,9" />
+                                <Button Style="{StaticResource CategorySaveButton}" Content="確認した分類を一括保存" Command="{Binding SaveBatchCategoryCommand}"
+                                        CommandParameter="{Binding SelectedItems, ElementName=UnclassifiedList}" IsEnabled="{Binding CanSaveBatchCategory}" Padding="12,9" Margin="0,8,0,0" />
+                                <TextBlock Text="ルールは履歴削除・保存期間の対象外です。「設定」の分類ルール一覧から削除できます。手動補正は常に優先されます。"
+                                           Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" FontSize="11" Margin="0,14,0,0" />
                             </StackPanel>
                         </ScrollViewer>
                     </Border>

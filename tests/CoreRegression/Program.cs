@@ -17,7 +17,7 @@ internal static class Program
             ["memory"] = MemoryTests.Run, ["browser"] = BrowserStateTests.Run,
             ["aggregation"] = CreatorAggregationTests.Run, ["settings"] = SettingsTests.Run,
             ["ui"] = UiTests.Run, ["migration"] = MigrationTests.Run,
-            ["ai"] = AiReportTests.Run
+            ["ai"] = AiReportTests.Run, ["categorization"] = CategorizationTests.Run
         };
         var requested = args.Length == 0 ? suites.Keys.ToArray() : args;
         var failures = 0;

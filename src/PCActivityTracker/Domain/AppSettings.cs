@@ -58,11 +58,14 @@ public enum CategoryRuleTarget
 {
     Application,
     Domain,
-    Creator
+    Creator,
+    ProcessName,
+    CreatorId
 }
 
 public enum CategoryMatchMode
 {
     Wildcard,
-    Regex
+    Regex,
+    Exact
 }

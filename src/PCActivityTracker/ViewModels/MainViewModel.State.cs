@@ -33,13 +33,13 @@ public sealed partial class MainViewModel
     public BulkObservableCollection<AnalysisMetricItem> FocusHours { get; } = new();
     public BulkObservableCollection<AnalysisMetricItem> FocusDistribution { get; } = new();
     public BulkObservableCollection<AnalysisMetricItem> FocusScoreComponents { get; } = new();
-    public IReadOnlyList<string> CategoryRuleTargets { get; } = new[] { "アプリ", "ドメイン", "配信者・チャンネル" };
-    public IReadOnlyList<string> CategoryRuleMatchModes { get; } = new[] { "ワイルドカード", "正規表現" };
+    public IReadOnlyList<string> CategoryRuleTargets { get; } = new[] { "アプリ", "プロセス", "ドメイン", "配信者・チャンネル", "チャンネルID" };
+    public IReadOnlyList<string> CategoryRuleMatchModes { get; } = new[] { "ワイルドカード", "正規表現", "完全一致" };
     public IReadOnlyList<string> ExplorerRanges { get; } = new[] { "1日", "7日", "1か月", "90日" };
     public IReadOnlyList<int> TimelineZoomChoices { get; } = new[] { 1, 5, 10, 15, 30, 60 };
     public IReadOnlyList<string> CategoryChoices { get; } = new[]
     {
-        "Development", "Productivity", "Research", "Communication", "Entertainment", "System", "Other"
+        "Development", "Productivity", "Research", "Education", "Communication", "Entertainment", "Gaming", "System", "Other"
     };
 
     public AsyncRelayCommand NavigateCommand { get; }
@@ -93,6 +93,8 @@ public sealed partial class MainViewModel
         {
             if (!Set(ref _selectedDate, value)) return;
             CancelRefresh();
+            SelectedExplorerItem = null;
+            InvalidateCategoryReviews();
             _aiGenerationCancellation?.Cancel();
             Raise(nameof(DateLabel));
             Raise(nameof(AiPeriodLabel));
@@ -173,7 +175,11 @@ public sealed partial class MainViewModel
     public bool HasNoSites { get => _hasNoSites; private set => Set(ref _hasNoSites, value); }
     public bool HasNoCreators { get => _hasNoCreators; private set => Set(ref _hasNoCreators, value); }
     public string StatusMessage { get => _statusMessage; private set => Set(ref _statusMessage, value); }
-    public string NewCategoryRuleTarget { get => _newCategoryRuleTarget; set => Set(ref _newCategoryRuleTarget, value); }
+    public string NewCategoryRuleTarget
+    {
+        get => _newCategoryRuleTarget;
+        set { if (Set(ref _newCategoryRuleTarget, value) && value == "チャンネルID") NewCategoryRuleMatchMode = "完全一致"; }
+    }
     public string NewCategoryRulePattern { get => _newCategoryRulePattern; set => Set(ref _newCategoryRulePattern, value); }
     public string NewCategoryRuleCategory { get => _newCategoryRuleCategory; set => Set(ref _newCategoryRuleCategory, value); }
     public string NewCategoryRuleMatchMode { get => _newCategoryRuleMatchMode; set => Set(ref _newCategoryRuleMatchMode, value); }
@@ -186,6 +192,9 @@ public sealed partial class MainViewModel
         set
         {
             if (!Set(ref _explorerRange, value)) return;
+            CancelRefresh();
+            SelectedExplorerItem = null;
+            InvalidateCategoryReviews();
             Raise(nameof(DateLabel));
         }
     }
@@ -210,6 +219,7 @@ public sealed partial class MainViewModel
         {
             if (!Set(ref _selectedExplorerItem, value)) return;
             LoadAnnotationEditor(value);
+            LoadQuickCategoryEditor(value);
             Raise(nameof(HasSelectedExplorerItem));
         }
     }

@@ -1,4 +1,5 @@
 using PCActivityTracker.Domain;
+using System.Text;
 
 namespace PCActivityTracker.Data;
 
@@ -51,14 +52,14 @@ public sealed class SettingsRepository
         SELECT id, target_type, pattern, category, match_mode, color, priority
         FROM category_rules
         ORDER BY priority DESC,
-                 CASE target_type WHEN 'Creator' THEN 0 WHEN 'Domain' THEN 1 ELSE 2 END,
+                 CASE target_type WHEN 'CreatorId' THEN 0 WHEN 'Creator' THEN 1 WHEN 'Domain' THEN 2 WHEN 'ProcessName' THEN 3 ELSE 4 END,
                  id DESC;
         """).Select(row => new CategoryRule
         {
             Id = row.Int64("id"),
             Target = Enum.TryParse<CategoryRuleTarget>(row.String("target_type"), out var target)
                 ? target : CategoryRuleTarget.Application,
-            Pattern = row.String("pattern") ?? string.Empty,
+            Pattern = DecodePattern(row.String("target_type"), row.String("pattern") ?? string.Empty),
             Category = row.String("category") ?? "Other",
             MatchMode = Enum.TryParse<CategoryMatchMode>(row.String("match_mode"), out var mode)
                 ? mode : CategoryMatchMode.Wildcard,
@@ -73,8 +74,38 @@ public sealed class SettingsRepository
         ON CONFLICT(target_type, pattern) DO UPDATE SET
             category=excluded.category, match_mode=excluded.match_mode, color=excluded.color,
             priority=excluded.priority, created_utc_ms=excluded.created_utc_ms;
-        """, target.ToString(), pattern.Trim(), category.Trim(), matchMode.ToString(), color, priority,
+        """, target.ToString(), EncodePattern(target, pattern.Trim()), category.Trim(), matchMode.ToString(), color, priority,
         DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 
     public void RemoveCategoryRule(long id) => _database.Execute("DELETE FROM category_rules WHERE id=?1;", id);
+
+    public void AddCategoryRules(IReadOnlyList<CategoryRule> rules)
+    {
+        if (rules.Count == 0) return;
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var values = rules.Select((_, index) => "(" + string.Join(',', Enumerable.Range(index * 7 + 1, 7).Select(number => "?" + number)) + ")");
+        var parameters = rules.SelectMany(rule => new object?[]
+            { rule.Target.ToString(), EncodePattern(rule.Target, rule.Pattern), rule.Category, rule.MatchMode.ToString(), rule.Color, rule.Priority, now }).ToArray();
+        // A single parameterized statement is atomic even when one rule fails.
+        _database.Execute($"""
+            INSERT INTO category_rules(target_type, pattern, category, match_mode, color, priority, created_utc_ms)
+            VALUES {string.Join(',', values)}
+            ON CONFLICT(target_type, pattern) DO UPDATE SET category=excluded.category,
+                match_mode=excluded.match_mode, color=excluded.color, priority=excluded.priority,
+                created_utc_ms=excluded.created_utc_ms;
+            """, parameters);
+    }
+
+    // The legacy pattern column is NOCASE. Channel IDs are case-sensitive;
+    // a hex storage key preserves their identity without rewriting old rules
+    // or migrating the entire settings table. Public APIs always expose IDs.
+    private static string EncodePattern(CategoryRuleTarget target, string pattern) =>
+        target == CategoryRuleTarget.CreatorId ? "idhex:" + Convert.ToHexString(Encoding.UTF8.GetBytes(pattern)) : pattern;
+
+    private static string DecodePattern(string? target, string pattern)
+    {
+        if (target != nameof(CategoryRuleTarget.CreatorId) || !pattern.StartsWith("idhex:", StringComparison.Ordinal)) return pattern;
+        try { return Encoding.UTF8.GetString(Convert.FromHexString(pattern[6..])); }
+        catch (FormatException) { return pattern; } // Corrupt keys fail to match, never become broad patterns.
+    }
 }

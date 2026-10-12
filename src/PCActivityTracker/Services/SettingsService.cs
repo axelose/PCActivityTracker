@@ -144,6 +144,9 @@ public sealed class SettingsService
         if (string.IsNullOrWhiteSpace(pattern) || string.IsNullOrWhiteSpace(category)) return;
         if (pattern.Length > 200) throw new ArgumentException("分類パターンは200文字以内で入力してください。");
         if (category.Length > 120) throw new ArgumentException("カテゴリ階層は120文字以内で入力してください。");
+        if (!Enum.IsDefined(target) || !Enum.IsDefined(matchMode)) throw new ArgumentException("分類対象または照合方式が不正です。");
+        if (target == CategoryRuleTarget.CreatorId && matchMode != CategoryMatchMode.Exact)
+            throw new ArgumentException("チャンネルIDは完全一致で指定してください。");
         if (matchMode == CategoryMatchMode.Regex)
         {
             try { _ = Regex.IsMatch(string.Empty, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50)); }
@@ -159,10 +162,25 @@ public sealed class SettingsService
         ReloadCategoryRules();
     }
 
-    public string Categorize(string appName, string? domain, bool idle, string? creatorName = null)
+    public void AddCategoryRules(IReadOnlyList<CategoryRuleDraft> drafts)
+    {
+        if (drafts.Count is < 1 or > 100) throw new ArgumentException("一度に保存できる分類ルールは1～100件です。");
+        var rules = drafts.Select(draft => draft.ToRule()).ToArray();
+        foreach (var rule in rules)
+        {
+            if (!Enum.IsDefined(rule.Target) || string.IsNullOrWhiteSpace(rule.Pattern) || rule.Pattern.Length > 200 ||
+                string.IsNullOrWhiteSpace(rule.Category) || rule.Category.Length > 120 || rule.Pattern.Any(char.IsControl))
+                throw new ArgumentException("分類対象・パターン・カテゴリを確認してください（パターン200文字、カテゴリ120文字以内）。");
+        }
+        _repository.AddCategoryRules(rules);
+        ReloadCategoryRules();
+    }
+
+    public string Categorize(string appName, string? domain, bool idle, string? creatorName = null,
+        string? processName = null, string? creatorId = null)
     {
         lock (_gate)
-            return ActivityCategorizer.Categorize(appName, domain, idle, creatorName, _categoryRules);
+            return ActivityCategorizer.Categorize(appName, domain, idle, creatorName, _categoryRules, processName, creatorId);
     }
 
     public bool IsApplicationExcluded(string appName, string processName, string executableName)

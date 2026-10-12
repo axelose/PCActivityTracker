@@ -22,7 +22,8 @@ Windows documented user-mode APIs
                  │       ├─ interruption/recovery + time-of-day focus evidence
                  │       └─ hourly overlap split ── 7 x 24 heatmap
                  ├─ Activity Explorer ── cross-search + variable time buckets
-                 │       └─ non-destructive project/task/category annotation overlays
+                 │       ├─ non-destructive project/task/category annotation overlays
+                 │       └─ reviewed exact rules + duration-ranked unclassified groups
                  ├─ AI Report Service ── evidence/freshness/quality gate ── LocalAi.Runtime ── local Ollama
                  │       ├─ Game Safety ── existing foreground process observation
                  │       └─ AiReport Repository ── SQLite

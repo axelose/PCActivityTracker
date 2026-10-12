@@ -17,4 +17,15 @@ public sealed record CategoryRuleItem(long Id, string Target, string Pattern, st
 public sealed record ExplorerTimelineItem(long AnnotationId, DateTimeOffset Start, DateTimeOffset End,
     DateTimeOffset? AnnotationStart, DateTimeOffset? AnnotationEnd, string TimeRange, string Title,
     string Subtitle, string Duration, string Category, string CategoryReason, string Project,
-    string Task, string Note, bool IsIdle, bool IsWebsite, bool IsFocus, bool IsSwitch, int ActivityCount);
+    string Task, string Note, bool IsIdle, bool IsWebsite, bool IsFocus, bool IsSwitch, int ActivityCount,
+    string AppName = "", string ProcessName = "", string Domain = "", string Creator = "", string CreatorId = "");
+public sealed record UnclassifiedItem(PCActivityTracker.Domain.CategoryRuleTarget Target, string Pattern,
+    string Name, string Duration, int SessionCount, long Seconds)
+{
+    public string TargetLabel => Target switch
+    {
+        PCActivityTracker.Domain.CategoryRuleTarget.Domain => "ドメイン",
+        PCActivityTracker.Domain.CategoryRuleTarget.ProcessName => "プロセス",
+        _ => "アプリ"
+    };
+}

@@ -196,7 +196,8 @@ public sealed class ActivityTrackerService : IAsyncDisposable
                     ? CreatorIdentityService.Normalize(browser.CreatorId, browser.Domain) : null,
                 // Persist the deterministic built-in category. User rules are applied
                 // at query time, so deleting a rule also restores historical results.
-                Category = ActivityCategorizer.Categorize(snapshot.AppName, browser.Domain, false, browser.CreatorName)
+                Category = ActivityCategorizer.Categorize(snapshot.AppName, browser.Domain, false, browser.CreatorName,
+                    processName: snapshot.ProcessName, creatorId: settings.RecordCreatorNames ? browser.CreatorId : null)
             };
         }
 
@@ -216,7 +217,7 @@ public sealed class ActivityTrackerService : IAsyncDisposable
                 : snapshot.WindowTitle,
             ExecutableName = snapshot.ExecutableName,
             IsIdle = snapshot.IsIdle,
-            Category = ActivityCategorizer.Categorize(snapshot.AppName, null, snapshot.IsIdle)
+            Category = ActivityCategorizer.Categorize(snapshot.AppName, null, snapshot.IsIdle, processName: snapshot.ProcessName)
         };
     }
 

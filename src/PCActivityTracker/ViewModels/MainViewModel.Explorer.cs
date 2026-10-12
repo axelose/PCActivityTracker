@@ -15,6 +15,7 @@ public sealed partial class MainViewModel
     private async Task SearchExplorerAsync()
     {
         if (!_uiActive || !IsExplorer) return;
+        if (IsUnclassifiedView) { await LoadUnclassifiedAsync(); return; }
         var selectedDate = SelectedDate;
         var refresh = new CancellationTokenSource();
         var previous = _refreshCancellation;
@@ -39,7 +40,8 @@ public sealed partial class MainViewModel
                 item.Title,
                 item.ActivityCount > 1 ? $"{item.Subtitle}  ·  {item.ActivityCount}種類" : item.Subtitle,
                 FormatDuration(item.Seconds), item.Category, item.CategoryReason, item.Project, item.Task,
-                item.Note, item.IsIdle, item.IsWebsite, item.IsFocus, item.IsSwitch, item.ActivityCount)));
+                item.Note, item.IsIdle, item.IsWebsite, item.IsFocus, item.IsSwitch, item.ActivityCount,
+                item.AppName, item.ProcessName, item.Domain, item.Creator, item.CreatorId)));
             HasNoExplorerResults = ExplorerTimeline.Count == 0;
             ExplorerStatus = $"{result.RawSessionCount:N0}セッション・{FormatDuration(result.MatchingSeconds)}" +
                              $"／{TimelineZoomMinutes}分粒度・{ExplorerTimeline.Count:N0}区間" +
