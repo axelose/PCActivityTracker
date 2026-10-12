@@ -24,24 +24,16 @@ public sealed partial class MainViewModel
         IsLoading = true;
         try
         {
-            var (start, end) = GetExplorerRangeBounds();
-            var query = new ActivitySearchQuery(start, end, TimelineZoomMinutes,
-                SearchText, SearchApp, SearchDomain, SearchCreator, SearchCategory, SearchProject,
-                SearchIncludeIdle, SearchOnlyFocus, SearchOnlySwitches);
-            var result = await Task.Run(() => _explorerService.Search(query), refresh.Token);
+            var query = BuildExplorerQuery();
+            var compare = CompareExplorer;
+            var comparison = compare ? await Task.Run(() => _explorerService.Compare(query), refresh.Token) : null;
+            var result = comparison?.Current ?? await Task.Run(() => _explorerService.Search(query), refresh.Token);
             refresh.Token.ThrowIfCancellationRequested();
-            if (!CanApplyRefresh(refresh, "Explorer", selectedDate)) return;
+            if (!CanApplyRefresh(refresh, "Explorer", selectedDate) || query != BuildExplorerQuery() || compare != CompareExplorer) return;
             SelectedExplorerItem = null;
-            Replace(ExplorerTimeline, result.Entries.Select(item => new ExplorerTimelineItem(
-                item.AnnotationId, item.Start, item.End, item.AnnotationStart, item.AnnotationEnd,
-                item.Start.LocalDateTime.Date == item.End.LocalDateTime.Date
-                    ? $"{item.Start.LocalDateTime:HH:mm} – {item.End.LocalDateTime:HH:mm}"
-                    : $"{item.Start.LocalDateTime:M/d HH:mm} – {item.End.LocalDateTime:M/d HH:mm}",
-                item.Title,
-                item.ActivityCount > 1 ? $"{item.Subtitle}  ·  {item.ActivityCount}種類" : item.Subtitle,
-                FormatDuration(item.Seconds), item.Category, item.CategoryReason, item.Project, item.Task,
-                item.Note, item.IsIdle, item.IsWebsite, item.IsFocus, item.IsSwitch, item.ActivityCount,
-                item.AppName, item.ProcessName, item.Domain, item.Creator, item.CreatorId)));
+            SelectedExplorerBucket = null;
+            Replace(ExplorerTimeline, result.Entries.Select(ToExplorerItem));
+            ApplyExplorerComparison(result, comparison);
             HasNoExplorerResults = ExplorerTimeline.Count == 0;
             ExplorerStatus = $"{result.RawSessionCount:N0}セッション・{FormatDuration(result.MatchingSeconds)}" +
                              $"／{TimelineZoomMinutes}分粒度・{ExplorerTimeline.Count:N0}区間" +
@@ -94,6 +86,7 @@ public sealed partial class MainViewModel
         SearchIncludeIdle = true;
         SearchOnlyFocus = false;
         SearchOnlySwitches = false;
+        SearchExcludedCategory = string.Empty;
     }
 
     private void LoadAnnotationEditor(ExplorerTimelineItem? item)
@@ -106,8 +99,8 @@ public sealed partial class MainViewModel
         }
         var start = item.AnnotationStart ?? item.Start;
         var end = item.AnnotationEnd ?? item.End;
-        AnnotationStart = start.LocalDateTime.ToString("yyyy/MM/dd HH:mm");
-        AnnotationEnd = end.LocalDateTime.ToString("yyyy/MM/dd HH:mm");
+        AnnotationStart = start.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss.fff");
+        AnnotationEnd = end.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss.fff");
         AnnotationProject = item.Project;
         AnnotationTask = item.Task;
         AnnotationNote = item.Note;

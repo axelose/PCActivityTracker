@@ -20,7 +20,11 @@ public partial class MainWindow : Window
             ThemeService.ApplyWindowTheme(this, _viewModel.EffectiveTheme);
             await _viewModel.InitializeAsync();
         };
-        IsVisibleChanged += (_, _) => _viewModel.SetUiActive(IsVisible && IsActive && WindowState != WindowState.Minimized);
+        IsVisibleChanged += (_, _) =>
+        {
+            _viewModel.SetUiActive(IsVisible && IsActive && WindowState != WindowState.Minimized);
+            if (!IsVisible) _viewModel.CancelAiReportCommand.Execute(null);
+        };
         Activated += (_, _) => _viewModel.SetUiActive(true);
         Deactivated += (_, _) => _viewModel.SetUiActive(false);
         StateChanged += Window_StateChanged;
@@ -30,6 +34,7 @@ public partial class MainWindow : Window
     private void Window_Closing(object? sender, CancelEventArgs e)
     {
         _viewModel.SetUiActive(false);
+        _viewModel.CancelAiReportCommand.Execute(null);
     }
 
     private void Window_StateChanged(object? sender, EventArgs e)
@@ -37,6 +42,7 @@ public partial class MainWindow : Window
         if (WindowState == WindowState.Minimized && !App.IsExitRequested)
         {
             _viewModel.SetUiActive(false);
+            _viewModel.CancelAiReportCommand.Execute(null);
             Dispatcher.BeginInvoke(Close);
             return;
         }

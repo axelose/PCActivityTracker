@@ -33,6 +33,9 @@ public sealed partial class MainViewModel
             if (!Set(ref _isUnclassifiedView, value)) return;
             SelectedExplorerItem = null;
             InvalidateCategoryReviews();
+            _aiGenerationCancellation?.Cancel();
+            ClearAiCategorySuggestions();
+            SelectedExplorerBucket = null;
             Raise(nameof(IsExplorerTimelineView));
         }
     }
@@ -44,7 +47,7 @@ public sealed partial class MainViewModel
         (QuickCategoryScope == "配信者・チャンネル" ? " 表示名は同名・改名の影響を受けます。IDがあればIDを推奨します。"
             : SelectedExplorerItem!.IsWebsite && QuickCategoryScope is "アプリ" or "プロセス"
                 ? " ブラウザの別サイトにも適用されます。サイト単位ならドメインを選んでください。" : string.Empty)
-        : "Idleや複数の活動が混ざった行ではルールを作れません。1分表示などで単一の活動を選んでください。";
+        : "Idleや複数の活動が混ざった行ではルールを作れません。「元の活動区間」から単一の活動を選んでください。";
     public IReadOnlyList<string> QuickCategoryScopes
     {
         get
@@ -77,6 +80,10 @@ public sealed partial class MainViewModel
         {
             if (_isDeletingData) throw new InvalidOperationException("データ削除中は補正できません。");
             if (SelectedExplorerItem is null || SelectedExplorerItem.IsIdle) throw new InvalidOperationException("補正する通常活動を選択してください。");
+            // Add a clipped override rather than changing an existing annotation outside this piece.
+            SetEditingAnnotationId(0);
+            AnnotationStart = SelectedExplorerItem.Start.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss.fff");
+            AnnotationEnd = SelectedExplorerItem.End.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss.fff");
             AnnotationCategory = QuickCategory;
             await SaveAnnotationAsync();
         }, HandleCommandError);
@@ -138,6 +145,8 @@ public sealed partial class MainViewModel
 
     private async Task LoadUnclassifiedAsync()
     {
+        _aiGenerationCancellation?.Cancel();
+        ClearAiCategorySuggestions();
         CancelRefresh();
         var refresh = new CancellationTokenSource();
         _refreshCancellation = refresh;

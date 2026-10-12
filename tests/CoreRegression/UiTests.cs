@@ -109,12 +109,26 @@ internal static class UiTests
                             model.QuickCategory = "Education";
                             Check.That(model.CanQuickCategorize && model.QuickCategoryScope == "チャンネルID", "Channel history did not prefer stable ID rule.");
                             Check.That(!model.CanSaveQuickCategory, "A quick rule could save without review.");
+                            var mixed = sample with { ActivityCount = 2, CategoryBreakdown = "Education 3分 / Entertainment 2分",
+                                Parts = new[] { sample with { Category = "Education", End = sampleStart.AddMinutes(3), Duration = "3分" },
+                                    sample with { Start = sampleStart.AddMinutes(3), Duration = "2分" } } };
+                            model.ExplorerTimeline.Clear(); model.ExplorerTimeline.Add(mixed); model.SelectedExplorerBucket = mixed;
+                            Check.That(!model.CanQuickCategorize, "Mixed bucket could create a representative rule.");
+                            model.SelectExplorerPartCommand.Execute(mixed.Parts![0]);
+                            Check.That(model.CanQuickCategorize && model.SelectedExplorerItem == mixed.Parts[0] && model.SelectedExplorerBucket == mixed,
+                                "Selecting an original piece lost the parent or editing target.");
+                            model.ExplorerCategoryComparison.Clear();
+                            model.ExplorerCategoryComparison.Add(new ComparisonItem("カテゴリ", "Education", "1分", "3分", "+2分", true));
+                            model.SavedSearchName = "Synthetic learning";
+                            model.SaveExplorerSearchCommand.Execute(null);
+                            ((Expander)window.FindName("ExplorerToolsExpander")).IsExpanded = true;
                             content.UpdateLayout();
                             Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
                             Render(content, "explorer-" + theme + "-timeline");
                             typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, true);
                             model.UnclassifiedItems.Add(new UnclassifiedItem(CategoryRuleTarget.ProcessName, "synthetic-editor", "Synthetic Editor", "43分", 8, 2580));
                             model.UnclassifiedItems.Add(new UnclassifiedItem(CategoryRuleTarget.Domain, "unknown.example.test", "unknown.example.test", "18分", 3, 1080));
+                            model.AiCategorySuggestions.Add(new(new CategoryRuleDraft(CategoryRuleTarget.ProcessName, "synthetic-editor", "Development"), "Synthetic Editor"));
                             content.UpdateLayout();
                             Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.DataBind);
                             var list = (ListBox)window.FindName("UnclassifiedList");
@@ -196,6 +210,37 @@ internal static class UiTests
             Execute(model.SaveBatchCategoryCommand, selected);
             Check.That(fixture.Settings.CategoryRules.Count == count + 2 && fixture.Settings.CategoryRules.Count(rule => rule.Category == "仕事 > 開発") == 2,
                 "UI batch save or category normalization failed: " + model.StatusMessage);
+            typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, false);
+            model.SearchCategory = "Education"; model.SearchExcludedCategory = "Gaming";
+            model.SearchCreator = id; model.SearchIncludeIdle = false; model.TimelineZoomMinutes = 15;
+            model.SavedSearchName = "Learning only";
+            model.SaveExplorerSearchCommand.Execute(null);
+            model.SelectedSavedSearch = model.SavedExplorerSearches.Single(item => item.Name == "Learning only");
+            model.SearchCategory = "Other"; model.SearchExcludedCategory = ""; model.SearchCreator = "";
+            Execute(model.ApplyExplorerSearchCommand);
+            Check.That(model.SearchCategory == "Education" && model.SearchExcludedCategory == "Gaming" && model.SearchCreator == id &&
+                !model.SearchIncludeIdle && model.TimelineZoomMinutes == 15, "Saved-search UI did not restore all conditions.");
+            model.SelectedSavedSearch = model.SavedExplorerSearches.Single(item => item.Name == "Learning only");
+            model.DeleteExplorerSearchCommand.Execute(null);
+            Check.That(!model.SavedExplorerSearches.Any(item => item.Name == "Learning only"), "Saved-search UI deletion failed.");
+
+            typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, true);
+            var suggestion = new AiCategorySuggestion(new(CategoryRuleTarget.ProcessName, "synthetic-ai-editor", "Education"), "Synthetic AI Editor");
+            model.AiCategorySuggestions.Add(suggestion);
+            var beforeAi = fixture.Settings.CategoryRules.Count;
+            Check.That(!model.CanSaveAiCategories, "Receiving an AI suggestion allowed immediate save.");
+            Execute(model.SaveAiCategoriesCommand, new[] { suggestion });
+            Check.That(fixture.Settings.CategoryRules.Count == beforeAi, "AI bypassed impact preview.");
+            Execute(model.PreviewAiCategoriesCommand, new[] { suggestion });
+            Check.That(model.CanSaveAiCategories, "AI selection impact preview failed: " + model.StatusMessage);
+            Execute(model.SaveAiCategoriesCommand, Array.Empty<AiCategorySuggestion>());
+            Check.That(fixture.Settings.CategoryRules.Count == beforeAi, "Changed AI selection bypassed confirmation.");
+            Execute(model.SaveAiCategoriesCommand, new[] { suggestion });
+            Check.That(fixture.Settings.CategoryRules.Count == beforeAi + 1 && model.AiCategorySuggestions.Count == 0 && !model.CanSaveAiCategories,
+                "AI explicit approval did not save and discard ephemeral candidates: " + model.StatusMessage);
+            model.AiCategorySuggestions.Add(suggestion);
+            model.SelectedDate = model.SelectedDate.AddDays(-1);
+            Check.That(model.AiCategorySuggestions.Count == 0 && !model.CanSaveAiCategories, "Date change retained stale AI candidates.");
             typeof(MainViewModel).GetProperty(nameof(MainViewModel.IsUnclassifiedView))!.SetValue(model, false);
         }
         finally { SynchronizationContext.SetSynchronizationContext(oldContext); }

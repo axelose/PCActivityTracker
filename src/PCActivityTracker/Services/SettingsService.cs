@@ -17,6 +17,8 @@ public sealed class SettingsService
 
     public SettingsService(SettingsRepository repository) => _repository = repository;
 
+    public SavedExplorerSearchStore ExplorerSearches => new(_repository);
+
     public event EventHandler? Changed;
 
     public AppSettings Current

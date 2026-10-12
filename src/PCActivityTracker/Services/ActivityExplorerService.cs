@@ -24,20 +24,33 @@ public sealed class ActivityExplorerService
     }
 
     public ActivitySearchResult Search(ActivitySearchQuery query)
+        => SearchCore(query, _settings.CategoryRules, true);
+
+    public ExplorerComparison Compare(ActivitySearchQuery query)
+    {
+        var rules = _settings.CategoryRules;
+        var previousQuery = query with { Start = query.Start - (query.End - query.Start), End = query.Start };
+        return new(SearchCore(query, rules, true), SearchCore(previousQuery, rules, false), previousQuery.Start, previousQuery.End);
+    }
+
+    private ActivitySearchResult SearchCore(ActivitySearchQuery query, IReadOnlyList<CategoryRule> rules, bool includeEntries)
     {
         if (query.End <= query.Start) throw new ArgumentOutOfRangeException(nameof(query));
         var zoom = NormalizeZoom(query.ZoomMinutes);
         var sessions = _activities.GetRange(query.Start, query.End);
         var annotations = _annotations.GetRange(query.Start, query.End);
-        var segments = BuildSegments(sessions, annotations, query.Start, query.End);
+        var segments = BuildSegments(sessions, annotations, query.Start, query.End, rules);
         MarkFocusAndSwitches(segments);
 
         var filtered = segments.Where(segment => Matches(query, segment)).ToList();
-        var entries = Bucketize(filtered, query.Start, query.End, zoom);
-        var truncated = entries.Count > MaximumEntries;
-        if (truncated) entries = entries.Skip(entries.Count - MaximumEntries).ToList();
+        var truncated = false;
+        var entries = includeEntries ? Bucketize(filtered, query.Start, query.End, zoom, out truncated) : new List<ExplorerEntry>();
         return new ActivitySearchResult(entries, filtered.Sum(item => item.Seconds),
-            filtered.Select(item => item.Session.Id).Distinct().Count(), truncated);
+            filtered.Select(item => item.Session.Id).Distinct().Count(), truncated,
+            filtered.GroupBy(item => item.Category, StringComparer.OrdinalIgnoreCase)
+                .Select(group => new ExplorerCategoryUsage(group.Key, group.Sum(item => item.Seconds)))
+                .OrderByDescending(item => item.Seconds).ToArray(),
+            filtered.Where(item => item.Session.IsIdle).Sum(item => item.Seconds));
     }
 
     public CategoryRulePreview PreviewRule(CategoryRule candidate, DateTimeOffset start, DateTimeOffset end)
@@ -242,6 +255,7 @@ public sealed class ActivityExplorerService
         if (!Contains(item.Session.Domain, query.Domain)) return false;
         if (!Contains(item.Session.CreatorName, query.Creator) && !Contains(item.Session.CreatorId, query.Creator)) return false;
         if (!Contains(item.Category, query.Category)) return false;
+        if (!string.IsNullOrWhiteSpace(query.ExcludedCategory) && Contains(item.Category, query.ExcludedCategory)) return false;
         if (!Contains(item.Annotation?.ProjectName, query.Project)) return false;
         if (string.IsNullOrWhiteSpace(query.Text)) return true;
         var values = new[]
@@ -257,10 +271,11 @@ public sealed class ActivityExplorerService
         (!string.IsNullOrWhiteSpace(value) && value.Contains(filter.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private static List<ExplorerEntry> Bucketize(IReadOnlyList<SearchSegment> segments,
-        DateTimeOffset rangeStart, DateTimeOffset rangeEnd, int zoomMinutes)
+        DateTimeOffset rangeStart, DateTimeOffset rangeEnd, int zoomMinutes, out bool truncated)
     {
         var intervalMilliseconds = zoomMinutes * 60_000L;
         var buckets = new SortedDictionary<long, BucketAccumulator>();
+        truncated = false;
         foreach (var segment in segments)
         {
             var cursor = segment.Start;
@@ -270,19 +285,25 @@ public sealed class ActivityExplorerService
                 var bucketStart = DateTimeOffset.FromUnixTimeMilliseconds(bucketMilliseconds);
                 var bucketEnd = bucketStart.AddMinutes(zoomMinutes);
                 var pieceEnd = Min(segment.End, bucketEnd);
-                var seconds = Math.Max(0, (long)(pieceEnd - cursor).TotalSeconds);
+                var seconds = Math.Max(0, (long)(pieceEnd - segment.Start).TotalSeconds - (long)(cursor - segment.Start).TotalSeconds);
                 if (seconds == 0) { cursor = pieceEnd; continue; }
                 if (!buckets.TryGetValue(bucketMilliseconds, out var accumulator))
                 {
                     accumulator = new BucketAccumulator(Max(bucketStart, rangeStart), Min(bucketEnd, rangeEnd));
                     buckets.Add(bucketMilliseconds, accumulator);
                 }
-                accumulator.Add(segment, seconds);
+                accumulator.Add(segment, cursor, pieceEnd, seconds);
+                if (buckets.Count > MaximumEntries)
+                {
+                    buckets.Remove(buckets.First().Key);
+                    truncated = true;
+                }
                 cursor = pieceEnd;
             }
         }
 
-        return buckets.Values.Where(bucket => bucket.End > bucket.Start).Select(bucket => bucket.Build()).ToList();
+        // Construct details only for visible buckets, not all 90 days of minute buckets.
+        return buckets.Values.Skip(Math.Max(0, buckets.Count - MaximumEntries)).Select(bucket => bucket.Build()).ToList();
     }
 
     private static int NormalizeZoom(int zoom) => zoom is 1 or 5 or 10 or 15 or 30 or 60 ? zoom : 5;
@@ -317,31 +338,36 @@ public sealed class ActivityExplorerService
 
     private sealed class BucketAccumulator
     {
-        private readonly Dictionary<string, Contribution> _contributions = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<Contribution> _contributions = new();
         private bool _containsFocus;
         private bool _containsSwitch;
         public BucketAccumulator(DateTimeOffset start, DateTimeOffset end) { Start = start; End = end; }
         public DateTimeOffset Start { get; }
         public DateTimeOffset End { get; }
 
-        public void Add(SearchSegment segment, long seconds)
+        public void Add(SearchSegment segment, DateTimeOffset start, DateTimeOffset end, long seconds)
         {
             _containsFocus |= segment.IsFocus;
             _containsSwitch |= segment.IsSwitch;
-            if (!_contributions.TryGetValue(segment.Identity, out var contribution))
-            {
-                contribution = new Contribution(segment);
-                _contributions.Add(segment.Identity, contribution);
-            }
-            contribution.Seconds += seconds;
-            contribution.SegmentCount++;
-            contribution.IsFocus |= segment.IsFocus;
-            contribution.IsSwitch |= segment.IsSwitch;
+            _contributions.Add(new Contribution(segment, start, end, seconds));
         }
 
         public ExplorerEntry Build()
         {
-            var dominant = _contributions.Values.OrderByDescending(item => item.Seconds).First();
+            var details = _contributions.OrderBy(item => item.Start).Select(item => BuildDetail(item)).ToArray();
+            var categories = _contributions.GroupBy(item => item.Segment.Category, StringComparer.OrdinalIgnoreCase)
+                .Select(group => new ExplorerCategoryUsage(group.Key, group.Sum(item => item.Seconds)))
+                .OrderByDescending(item => item.Seconds).ToArray();
+            var dominant = _contributions.Where(item => string.Equals(item.Segment.Category, categories[0].Category, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(item => item.Seconds).First();
+            return BuildDetail(dominant) with { Start = Start, End = End,
+                Seconds = _contributions.Sum(item => item.Seconds), IsFocus = _containsFocus,
+                IsSwitch = _containsSwitch, ActivityCount = _contributions.Count,
+                Parts = details, Categories = categories };
+        }
+
+        private static ExplorerEntry BuildDetail(Contribution dominant)
+        {
             var segment = dominant.Segment;
             var session = segment.Session;
             var title = session.ActivityType == ActivityType.Website ? session.Domain ?? session.AppName : session.AppName;
@@ -353,43 +379,40 @@ public sealed class ActivityExplorerService
             var subtitle = string.IsNullOrWhiteSpace(context)
                 ? sourceSubtitle
                 : string.IsNullOrWhiteSpace(sourceSubtitle) ? context : $"{context}  ·  {sourceSubtitle}";
-            var totalSeconds = _contributions.Values.Sum(item => item.Seconds);
-            return new ExplorerEntry(Start, End, title, subtitle, totalSeconds, session.IsIdle,
+            return new ExplorerEntry(dominant.Start, dominant.End, title, subtitle, dominant.Seconds, session.IsIdle,
                 session.ActivityType == ActivityType.Website, session.AppName, session.Domain ?? string.Empty,
                 session.CreatorName ?? string.Empty, segment.Category, segment.CategoryReason,
                 segment.Annotation?.ProjectName ?? string.Empty, segment.Annotation?.TaskName ?? string.Empty,
                 segment.Annotation?.Note ?? string.Empty, segment.Annotation?.Id ?? 0,
                 segment.Annotation?.StartTime, segment.Annotation?.EndTime,
-                _containsFocus, _containsSwitch, _contributions.Count, session.ProcessName, session.CreatorId ?? string.Empty);
+                segment.IsFocus, segment.IsSwitch, 1, session.ProcessName, session.CreatorId ?? string.Empty);
         }
 
         private static string FirstNotEmpty(params string?[] values) =>
             values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty;
     }
 
-    private sealed class Contribution
-    {
-        public Contribution(SearchSegment segment) => Segment = segment;
-        public SearchSegment Segment { get; }
-        public long Seconds { get; set; }
-        public int SegmentCount { get; set; }
-        public bool IsFocus { get; set; }
-        public bool IsSwitch { get; set; }
-    }
+    private sealed record Contribution(SearchSegment Segment, DateTimeOffset Start, DateTimeOffset End, long Seconds);
 }
 
 public sealed record ActivitySearchQuery(DateTimeOffset Start, DateTimeOffset End, int ZoomMinutes = 5,
     string Text = "", string App = "", string Domain = "", string Creator = "", string Category = "",
-    string Project = "", bool IncludeIdle = true, bool FocusOnly = false, bool SwitchesOnly = false);
+    string Project = "", bool IncludeIdle = true, bool FocusOnly = false, bool SwitchesOnly = false, string ExcludedCategory = "");
+
+public sealed record ExplorerComparison(ActivitySearchResult Current, ActivitySearchResult Previous,
+    DateTimeOffset PreviousStart, DateTimeOffset PreviousEnd);
 
 public sealed record ActivitySearchResult(IReadOnlyList<ExplorerEntry> Entries, long MatchingSeconds,
-    int RawSessionCount, bool IsTruncated);
+    int RawSessionCount, bool IsTruncated, IReadOnlyList<ExplorerCategoryUsage>? Categories = null, long IdleSeconds = 0);
+
+public sealed record ExplorerCategoryUsage(string Category, long Seconds);
 
 public sealed record ExplorerEntry(DateTimeOffset Start, DateTimeOffset End, string Title, string Subtitle,
     long Seconds, bool IsIdle, bool IsWebsite, string AppName, string Domain, string Creator, string Category,
     string CategoryReason, string Project, string Task, string Note, long AnnotationId,
     DateTimeOffset? AnnotationStart, DateTimeOffset? AnnotationEnd,
-    bool IsFocus, bool IsSwitch, int ActivityCount, string ProcessName = "", string CreatorId = "");
+    bool IsFocus, bool IsSwitch, int ActivityCount, string ProcessName = "", string CreatorId = "",
+    IReadOnlyList<ExplorerEntry>? Parts = null, IReadOnlyList<ExplorerCategoryUsage>? Categories = null);
 
 public sealed record CategoryRulePreview(int SessionCount, long Seconds, int ConflictCount,
     IReadOnlyList<string> Examples);

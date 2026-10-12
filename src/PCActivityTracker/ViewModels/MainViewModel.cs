@@ -228,6 +228,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SaveAnnotationCommand = new AsyncRelayCommand(async _ => await SaveAnnotationAsync(), HandleCommandError);
         DeleteAnnotationCommand = new AsyncRelayCommand(async _ => await DeleteAnnotationAsync(), HandleCommandError);
         InitializeCategoryTools();
+        InitializeExplorerTools();
+        InitializeAiCategoryTools();
 
         LoadSettings();
         LoadExclusions();
@@ -267,6 +269,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void ReleaseUiData()
     {
         CancelRefresh();
+        _aiGenerationCancellation?.Cancel();
         Timeline.Clear();
         AppRankings.Clear();
         SiteRankings.Clear();
@@ -281,12 +284,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         PeriodChanges.Clear();
         ExplorerTimeline.Clear();
         UnclassifiedItems.Clear();
+        ExplorerCategoryComparison.Clear();
+        ClearAiCategorySuggestions();
         InvalidateCategoryReviews();
         InterruptionSources.Clear();
         FocusHours.Clear();
         FocusDistribution.Clear();
         FocusScoreComponents.Clear();
         SelectedExplorerItem = null;
+        SelectedExplorerBucket = null;
         HasNoTimeline = true;
         HasNoExplorerResults = true;
         HasNoSites = true;
@@ -367,6 +373,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             var generationStopped = _aiGenerationStopped?.Task;
             _aiGenerationCancellation?.Cancel();
             if (generationStopped is not null) await generationStopped;
+            ClearAiCategorySuggestions();
+            InvalidateCategoryReviews();
             await Task.Run(() =>
             {
                 _activityRepository.DeleteAll();
@@ -504,6 +512,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _bridgeTimer.Stop();
         CancelRefresh();
         _aiGenerationCancellation?.Cancel();
-        _aiGenerationCancellation?.Dispose();
+        // The generation method owns disposal after its monitor has stopped.
     }
 }

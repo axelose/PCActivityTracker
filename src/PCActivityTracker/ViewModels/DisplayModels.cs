@@ -18,7 +18,11 @@ public sealed record ExplorerTimelineItem(long AnnotationId, DateTimeOffset Star
     DateTimeOffset? AnnotationStart, DateTimeOffset? AnnotationEnd, string TimeRange, string Title,
     string Subtitle, string Duration, string Category, string CategoryReason, string Project,
     string Task, string Note, bool IsIdle, bool IsWebsite, bool IsFocus, bool IsSwitch, int ActivityCount,
-    string AppName = "", string ProcessName = "", string Domain = "", string Creator = "", string CreatorId = "");
+    string AppName = "", string ProcessName = "", string Domain = "", string Creator = "", string CreatorId = "",
+    string CategoryBreakdown = "", IReadOnlyList<ExplorerTimelineItem>? Parts = null)
+{
+    public bool HasParts => Parts is { Count: > 0 };
+}
 public sealed record UnclassifiedItem(PCActivityTracker.Domain.CategoryRuleTarget Target, string Pattern,
     string Name, string Duration, int SessionCount, long Seconds)
 {

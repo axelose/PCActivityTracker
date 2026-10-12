@@ -79,7 +79,8 @@ public sealed partial class MainViewModel
         {
             if (!Set(ref _selectedPage, value)) return;
             CancelRefresh();
-            if (value != "AiReports") _aiGenerationCancellation?.Cancel();
+            _aiGenerationCancellation?.Cancel();
+            ClearAiCategorySuggestions();
             RaisePageFlags();
             Raise(nameof(PageTitle));
             Raise(nameof(ShowPeriodNavigation));
@@ -96,6 +97,8 @@ public sealed partial class MainViewModel
             SelectedExplorerItem = null;
             InvalidateCategoryReviews();
             _aiGenerationCancellation?.Cancel();
+            ClearAiCategorySuggestions();
+            SelectedExplorerBucket = null;
             Raise(nameof(DateLabel));
             Raise(nameof(AiPeriodLabel));
         }
@@ -195,6 +198,9 @@ public sealed partial class MainViewModel
             CancelRefresh();
             SelectedExplorerItem = null;
             InvalidateCategoryReviews();
+            _aiGenerationCancellation?.Cancel();
+            ClearAiCategorySuggestions();
+            SelectedExplorerBucket = null;
             Raise(nameof(DateLabel));
         }
     }

@@ -745,6 +745,35 @@
                             <CheckBox Content="25分以上の集中区間だけ" IsChecked="{Binding SearchOnlyFocus}" Margin="0,0,20,0" />
                             <CheckBox Content="切替に関係する区間だけ" IsChecked="{Binding SearchOnlySwitches}" />
                         </StackPanel>
+                        <Expander x:Name="ExplorerToolsExpander" Header="保存条件・カテゴリ集計・前期間比較" Margin="0,12,0,0" Visibility="{Binding IsExplorerTimelineView, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Margin="0,8,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <ComboBox Style="{StaticResource CategoryCombo}" ItemsSource="{Binding SavedExplorerSearches}" DisplayMemberPath="Name" SelectedItem="{Binding SelectedSavedSearch}" ToolTip="保存条件（最大20件）" />
+                                    <Button Grid.Column="1" Style="{DynamicResource SecondaryButton}" Content="適用" Command="{Binding ApplyExplorerSearchCommand}" Margin="6,0" />
+                                    <Button Grid.Column="2" Style="{DynamicResource SecondaryButton}" Content="削除" Command="{Binding DeleteExplorerSearchCommand}" Margin="0,0,10,0" />
+                                    <TextBox Grid.Column="3" Text="{Binding SavedSearchName, UpdateSourceTrigger=PropertyChanged}" MaxLength="60" Padding="7" ToolTip="保存する条件名（同名は上書き）" />
+                                    <Button Grid.Column="4" Style="{DynamicResource SecondaryButton}" Content="条件を保存" Command="{Binding SaveExplorerSearchCommand}" Margin="6,0,0,0" />
+                                </Grid>
+                                <TextBlock Text="{Binding SavedSearchStatus}" Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" FontSize="11" Margin="0,5" />
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                    <TextBlock Text="除外カテゴリ" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBox Text="{Binding SearchExcludedCategory, UpdateSourceTrigger=PropertyChanged}" Width="170" Padding="6" ToolTip="部分一致で除外（例 Gaming）。空欄は除外なし。" />
+                                    <CheckBox Content="前の同じ長さの期間と比較（検索で更新）" IsChecked="{Binding CompareExplorer}" VerticalAlignment="Center" Margin="16,0,0,0" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding ExplorerComparisonSummary}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" Margin="0,0,0,8" />
+                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="100" /><ColumnDefinition Width="100" /><ColumnDefinition Width="120" /></Grid.ColumnDefinitions>
+                                    <TextBlock Text="カテゴリ（最新ルールで再集計）" /><TextBlock Grid.Column="1" Text="前期間" /><TextBlock Grid.Column="2" Text="選択期間" /><TextBlock Grid.Column="3" Text="増減" />
+                                </Grid>
+                                <ScrollViewer MaxHeight="130" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding ExplorerCategoryComparison}"><ItemsControl.ItemTemplate><DataTemplate>
+                                        <Grid Margin="0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="100" /><ColumnDefinition Width="100" /><ColumnDefinition Width="120" /></Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Grid.Column="1" Text="{Binding Previous}" /><TextBlock Grid.Column="2" Text="{Binding Current}" /><TextBlock Grid.Column="3" Text="{Binding Change}" />
+                                        </Grid>
+                                    </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
                 </Border>
                 <TextBlock Grid.Row="1" Text="{Binding ExplorerStatus}" Foreground="{DynamicResource MutedInk}"
@@ -753,7 +782,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="340" /></Grid.ColumnDefinitions>
                     <Border Style="{DynamicResource Card}" Margin="0,0,10,0" Padding="12">
                         <Grid>
-                            <ListBox ItemsSource="{Binding ExplorerTimeline}" SelectedItem="{Binding SelectedExplorerItem, Mode=TwoWay}"
+                            <ListBox ItemsSource="{Binding ExplorerTimeline}" SelectedItem="{Binding SelectedExplorerBucket, Mode=TwoWay}"
                                      BorderThickness="0" Background="Transparent" ScrollViewer.CanContentScroll="True"
                                      VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                                 <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
@@ -785,6 +814,7 @@
                                             </StackPanel>
                                             <TextBlock Text="{Binding Subtitle}" Foreground="{DynamicResource MutedInk}" FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
                                             <TextBlock Text="{Binding CategoryReason}" Foreground="{DynamicResource MutedInk}" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                            <TextBlock Text="{Binding CategoryBreakdown}" Foreground="{DynamicResource Accent}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
                                         </StackPanel>
                                         <TextBlock Grid.Column="2" Text="{Binding Duration}" HorizontalAlignment="Right" VerticalAlignment="Top" FontWeight="SemiBold" Margin="8,3,0,0" />
                                     </Grid>
@@ -798,6 +828,18 @@
                     <Border Grid.Column="1" Style="{DynamicResource Card}" Margin="10,0,0,0" Padding="16">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <StackPanel IsEnabled="{Binding HasSelectedExplorerItem}">
+                                <TextBlock Text="{Binding SelectedExplorerItem.TimeRange}" FontWeight="SemiBold" Margin="0,0,0,5" />
+                                <TextBlock Text="{Binding SelectedExplorerItem.Subtitle}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,0,0,8" />
+                                <Expander Header="元の活動区間（選択して分類）" IsExpanded="False" Margin="0,0,0,12">
+                                    <ListBox ItemsSource="{Binding SelectedExplorerBucket.Parts}" MaxHeight="230" BorderThickness="0" Background="Transparent"
+                                             VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" ScrollViewer.CanContentScroll="True">
+                                        <ListBox.ItemTemplate><DataTemplate>
+                                            <Button Style="{StaticResource DrilldownLinkButtonStyle}" Command="{Binding DataContext.SelectExplorerPartCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                                                <StackPanel HorizontalAlignment="Left"><TextBlock Text="{Binding TimeRange}" FontSize="11" /><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Subtitle}" TextTrimming="CharacterEllipsis" FontSize="11" /><TextBlock Text="{Binding Category}" FontSize="11" /><TextBlock Text="{Binding Duration}" FontSize="11" /></StackPanel>
+                                            </Button>
+                                        </DataTemplate></ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Expander>
                                 <Expander Header="区間の注釈・手動補正" IsExpanded="False">
                                 <StackPanel>
                                 <TextBlock Text="選択区間を補正" FontSize="18" FontWeight="SemiBold" />
@@ -889,6 +931,20 @@
                                         CommandParameter="{Binding SelectedItems, ElementName=UnclassifiedList}" IsEnabled="{Binding CanSaveBatchCategory}" Padding="12,9" Margin="0,8,0,0" />
                                 <TextBlock Text="ルールは履歴削除・保存期間の対象外です。「設定」の分類ルール一覧から削除できます。手動補正は常に優先されます。"
                                            Foreground="{DynamicResource MutedInk}" TextWrapping="Wrap" FontSize="11" Margin="0,14,0,0" />
+                                <Separator Margin="0,18" />
+                                <TextBlock Text="ローカルAIの分類候補" FontSize="17" FontWeight="SemiBold" />
+                                <TextBlock Text="選択した未分類のドメイン・プロセス・アプリ名だけを送ります。URL・タイトル・チャンネルID・検索条件は送りません。サイト内の内容や利用目的は判定できません。モデルは設定で選択してください。"
+                                           TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,8,0,10" />
+                                <TextBlock Text="{Binding OllamaModel, StringFormat=モデル: {0}}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,0,0,8" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="選択項目の候補を生成（最大20件）" Command="{Binding SuggestAiCategoriesCommand}" CommandParameter="{Binding SelectedItems, ElementName=UnclassifiedList}" Padding="10,8" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="AI生成を中止" Command="{Binding CancelAiReportCommand}" Visibility="{Binding IsAiGenerating, Converter={StaticResource BoolToVisibility}}" Padding="10,7" Margin="0,6,0,0" />
+                                <TextBlock Text="{Binding AiCategoryStatus}" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" Margin="0,8,0,10" />
+                                <ListBox x:Name="AiCategorySuggestionList" ItemsSource="{Binding AiCategorySuggestions}" SelectionMode="Extended" MaxHeight="230" Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,5"><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding Draft.Category}" Foreground="{DynamicResource Accent}" /></StackPanel></DataTemplate></ListBox.ItemTemplate>
+                                </ListBox>
+                                <TextBlock Text="Ctrl／Shiftで承認したい候補だけを選択。候補は画面を離れると破棄します。" TextWrapping="Wrap" Foreground="{DynamicResource MutedInk}" FontSize="11" Margin="0,6,0,10" />
+                                <Button Style="{DynamicResource SecondaryButton}" Content="候補の影響をプレビュー" Command="{Binding PreviewAiCategoriesCommand}" CommandParameter="{Binding SelectedItems, ElementName=AiCategorySuggestionList}" Padding="10,8" />
+                                <Button Style="{StaticResource CategorySaveButton}" Content="選択した候補を承認・ルール保存" Command="{Binding SaveAiCategoriesCommand}" CommandParameter="{Binding SelectedItems, ElementName=AiCategorySuggestionList}" IsEnabled="{Binding CanSaveAiCategories}" Padding="10,8" Margin="0,7,0,0" />
                             </StackPanel>
                         </ScrollViewer>
                     </Border>
